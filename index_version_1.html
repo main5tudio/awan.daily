@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pratigahara Core</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  /* =========================================
+     A. GLOBAL VARIABLES & RESET
+     ========================================= */
+  :root {
+    --header-bg: rgba(18, 18, 18, 0.85);
+    --bg: #fcfcfc;
+    --text-active: rgba(18, 18, 18, 0.85);
+    --text-dim: rgba(0, 0, 0, 0.45);
+    --nav-fade: rgba(0, 0, 0, 0.20);
+    --nav-active: rgba(18, 18, 18, 0.85);
+    --orange-med: #ff9800; 
+    --bold-red: #ff0000;
+    --accent-green: #2d9e6b;
+    --donker: #0a1128;
+    --border: #eeeeee;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text-active); height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* =========================================
+     B. BOOT & SECURITY (INTRO + LOGIN)
+     ========================================= */
+  #intro-splash { position: fixed; inset: 0; background: var(--donker); color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.4s ease; cursor: pointer; }
+  .intro-symbol { font-size: 3rem; margin-bottom: 20px; color: var(--orange-med); animation: pulse 2s infinite; }
+  .intro-title { font-weight: 900; font-size: 1.5rem; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 5px; }
+  .intro-sub { font-size: 0.65rem; color: rgba(255,255,255,0.5); letter-spacing: 4px; text-transform: uppercase; margin-bottom: 20px;}
+  .intro-hint { font-size: 0.6rem; color: var(--text-dim); }
+  @keyframes pulse { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.05); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
+
+  #login-screen { position: fixed; inset: 0; background: var(--bg); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9998; }
+  .login-title { font-weight: 900; font-size: 1.2rem; margin-bottom: 5px; color: var(--text-active); }
+  .login-hint { font-size: 0.75rem; color: var(--text-dim); margin-bottom: 30px; font-weight: 700; }
+  .pin-display { display: flex; gap: 15px; margin-bottom: 40px; }
+  .pin-dot { width: 15px; height: 15px; border-radius: 50%; border: 2px solid var(--text-dim); transition: 0.2s; }
+  .pin-dot.filled { background: var(--text-active); border-color: var(--text-active); }
+  .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .pin-btn { width: 65px; height: 65px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 700; color: var(--text-active); cursor: pointer; background: #fff; }
+  .login-error { color: var(--bold-red); font-size: 0.75rem; font-weight: 700; margin-top: 20px; opacity: 0; }
+
+  /* =========================================
+     C. APP CORE & HEADER
+     ========================================= */
+  #app-core { display: none; flex-direction: column; height: 100dvh; width: 100%; }
+  #header { background: var(--header-bg); padding: 18px 24px; display: flex; align-items: center; color: #fff; z-index: 100; flex-shrink: 0; }
+  .header-left { flex: 1; font-weight: 700; font-size: 1rem; }
+  .header-right { flex: 1; text-align: right; }
+  #clock { display: block; font-size: 1.1rem; font-weight: 700; color: var(--orange-med); }
+  #date-string { display: block; font-size: 0.65rem; opacity: 0.7; margin-top: 2px; }
+
+  #main-stage { flex: 1; overflow-y: auto; position: relative; }
+  .tab-pane { display: none; padding: 20px 20px 100px; }
+  .tab-pane.active { display: block; }
+  .section-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: var(--text-dim); margin: 20px 0 10px; }
+
+  /* --- TAB 1: HOME --- */
+  .cal-header { font-weight: 700; font-size: 1.1rem; color: var(--text-active); margin-bottom: 15px; text-transform: uppercase; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; margin-bottom: 25px; }
+  .cal-h { font-size: 0.65rem; font-weight: 700; opacity: 0.3; padding-bottom: 10px; text-align: center; }
+  .cal-d { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; border-radius: 4px; color: var(--text-dim); }
+  .cal-d.active-m { color: var(--text-active); }
+  .cal-d.sunday { color: var(--bold-red) !important; font-weight: 900; font-size: 1.1rem; }
+  .cal-d.today { background: var(--orange-med); color: #fff !important; font-weight: 700; }
+  .red-pale-dot { width: 5px; height: 5px; background: #f28b82; border-radius: 50%; position: absolute; bottom: 4px; }
+  .wide-segment { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; margin-bottom: 20px; }
+  .act-row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 0.85rem; color: #888888; border-bottom: 1px solid #f9f9f9; }
+  .act-row:last-child { border-bottom: none; }
+  .act-row b { color: #555555; font-weight: 700; }
+
+  /* --- TAB 2: PROJECT --- */
+  #tab-project { padding: 0 0 100px 0; }
+  .proj-header-scroll { display: flex; gap: 1px; overflow-x: auto; background: var(--border); scrollbar-width: none; -ms-overflow-style: none; }
+  .proj-header-scroll::-webkit-scrollbar { display: none; }
+  .proj-tab-chip { padding: 16px 24px; border-radius: 0; font-size: 0.75rem; font-weight: 700; color: #fff; cursor: pointer; white-space: nowrap; opacity: 0.6; flex-shrink: 0; transition: 0.2s; }
+  .proj-tab-chip.active { opacity: 1; }
+  .proj-add-btn { background: #fff; color: #888888; opacity: 1; }
+  .proj-content-area { padding: 20px; }
+  
+  .proj-paragraph { background: transparent; border: none; padding: 0 0 12px 0; font-size: 9px; font-style: italic; color: rgba(0, 0, 0, 0.8); line-height: 1.4; margin-bottom: 20px; min-height: 30px; cursor: pointer; }
+  
+  .progress-section { margin-bottom: 25px; }
+  .progress-line-thick { height: 3px; background: var(--border); width: 100%; margin: 15px 0 5px 0; position: relative; border-radius: 2px; }
+  .step-container { display: flex; justify-content: space-between; align-items: center; position: relative; top: -8px; }
+  .step-dot-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .step-roman { font-size: 0.5rem; font-weight: 900; color: var(--text-dim); }
+  .step-dot { width: 14px; height: 14px; border: 2px solid var(--border); border-radius: 50%; background: #fff; cursor: pointer; z-index: 2; transition: 0.2s; }
+  .step-dot.done { background: var(--orange-med); border-color: var(--orange-med); }
+  .step-dot.active { transform: scale(1.3); box-shadow: 0 0 0 3px rgba(255,152,0,0.2); border-color: var(--orange-med); }
+  
+  .step-input-row { display: flex; align-items: center; gap: 10px; margin-top: 15px; font-size: 0.7rem; font-weight: 700; color: var(--text-dim); }
+  .step-count-box { background: rgba(0,0,0,0.5); color: #fff; padding: 4px 10px; border-radius: 4px; font-weight: 900; display: inline-block; cursor: pointer; min-width: 30px; text-align: center; }
+
+  .step-detail-box { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; margin-bottom: 25px; }
+  .step-title-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px dashed var(--border); padding-bottom: 8px; cursor: pointer;}
+  .step-title-row b { font-size: 0.85rem; color: var(--text-active); }
+  .step-add-task { font-size: 0.9rem; font-weight: 900; color: var(--orange-med); cursor: pointer; padding: 0 5px; }
+  .subtask-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; font-size: 0.75rem; color: var(--text-active); }
+  .subtask-dot { min-width: 12px; height: 12px; border: 2px solid var(--text-dim); border-radius: 50%; cursor: pointer; margin-top: 2px;}
+  .subtask-dot.fill { background: var(--orange-med); border-color: var(--orange-med); }
+
+  .v-link-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 25px; }
+  .v-link-item { display: flex; align-items: center; background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 10px 12px; font-size: 0.75rem; }
+  .v-link-type { font-weight: 900; color: var(--text-active); min-width: 70px; }
+  .v-link-sep { color: var(--border); margin: 0 8px; }
+  .v-link-url { flex: 1; color: var(--text-dim); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 10px; }
+  .v-link-action { cursor: pointer; font-size: 0.8rem; }
+
+  .kanban-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 30px; }
+  .kanban-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 10px; min-height: 80px; position: relative; }
+  .kanban-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .kanban-title-wrap { display: flex; flex-direction: column; }
+  .kanban-header h5 { font-size: 0.65rem; color: var(--text-active); font-weight: 900; text-transform: uppercase; }
+  .kanban-tag { font-size: 0.55rem; color: var(--text-dim); background: var(--border); padding: 2px 4px; border-radius: 3px; display: inline-block; margin-top: 2px; align-self: flex-start;}
+  .kanban-card p { font-size: 0.75rem; line-height: 1.3; color: var(--text-dim); }
+  .kanban-check-row { display: flex; align-items: flex-start; gap: 6px; margin-top: 4px; font-size: 0.7rem; color: var(--text-dim); }
+  .tag-done { color: var(--accent-green); font-weight: 900; font-size: 0.6rem; }
+
+  /* --- TAB 3: WORK --- */
+  .alarm-card { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .alarm-info b { font-size: 0.9rem; color: var(--text-active); }
+  .alarm-info p { font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; }
+  .alarm-time-input { font-family: 'DM Sans', sans-serif; font-size: 1.2rem; font-weight: 900; color: var(--orange-med); border: none; background: transparent; width: 80px; outline: none; text-align: right; }
+  .work-log-item { background: #fff; border-bottom: 1px solid #f2f2f2; padding: 12px 0; }
+  .work-log-item h4 { font-size: 0.85rem; font-weight: 700; color: #555; margin-bottom: 4px; }
+  .work-log-item p { font-size: 0.75rem; color: #888; }
+  .checklist-box { display: flex; align-items: flex-start; gap: 10px; margin-top: 5px; }
+  .checklist-box input { accent-color: var(--orange-med); margin-top: 2px; }
+
+  /* --- TAB 4: DAILY --- */
+  .daily-header-control { display: flex; align-items: center; gap: 15px; margin-bottom: 25px; }
+  .daily-square-btn { width: 45px; height: 45px; border: 2px solid var(--text-active); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.2rem; cursor: pointer; color: var(--text-active); }
+  .daily-active-title { font-weight: 900; font-size: 1.1rem; color: var(--text-active); text-transform: uppercase; }
+  .daily-view { display: none; }
+  .daily-view.active { display: block; animation: fadeIn 0.2s; }
+  
+  .stock-item { background: #fff; border: 1px solid var(--border); padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; align-items: flex-start; transition: 0.3s; }
+  .stock-info h4 { font-size: 0.95rem; font-weight: 900; color: var(--text-active); margin-bottom: 5px; }
+  .stock-info p { font-size: 0.75rem; color: var(--text-dim); }
+  .stock-status { font-weight: 700; font-size: 0.65rem; padding: 4px 8px; border-radius: 4px; margin-top: 5px; display: inline-block; }
+  .status-cukup { background: #e8f5e9; color: #2e7d32; }
+  .status-menipis { background: #fff3e0; color: #ef6c00; }
+  .btn-habis { font-size: 0.65rem; font-weight: 700; padding: 6px 12px; background: var(--text-active); color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+  .btn-hapus { font-size: 0.65rem; font-weight: 700; padding: 6px 12px; background: var(--bold-red); color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+  .stock-item.gray-pale { opacity: 0.4; filter: grayscale(100%); background: #f5f5f5; }
+
+  .income-item { background: #fff; border: 1px solid var(--border); padding: 15px; margin-bottom: 10px; border-radius: 8px; position: relative; }
+  .income-rank { position: absolute; top: 15px; right: 15px; width: 30px; height: 30px; background: var(--bg); border: 2px solid var(--orange-med); color: var(--orange-med); font-weight: 900; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; cursor: pointer; }
+  .income-title { font-size: 0.95rem; font-weight: 900; margin-bottom: 5px; padding-right: 40px; }
+  .income-reach { font-size: 0.75rem; color: var(--orange-med); font-weight: 700; margin-bottom: 5px; }
+  .income-desc { font-size: 0.75rem; color: var(--text-dim); margin-bottom: 8px; line-height: 1.4; }
+  .income-note { font-size: 0.7rem; color: #888; border-top: 1px dashed var(--border); padding-top: 8px; font-style: italic; }
+
+  .loan-item { background: #fff; border-left: 3px solid var(--bold-red); padding: 12px 15px; margin-bottom: 10px; border-radius: 0 8px 8px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+  .loan-item h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
+  .loan-item p { font-size: 0.75rem; color: var(--text-dim); }
+
+  /* --- TAB 5: CARES (FORMERLY HEALTH) --- */
+  .shalah-row-hz { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
+  .shalah-btn-hz { flex: 1; min-width: 58px; padding: 12px 5px; border: 1px solid var(--border); border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem; cursor: pointer; transition: 0.2s; background: #fff; position: relative; }
+  .shalah-btn-hz span { font-size: 0.6rem; color: var(--text-dim); margin-top: 4px; font-weight: 500; }
+  .shalah-btn-hz.done { background: var(--orange-med); color: #fff; border-color: var(--orange-med); }
+  .shalah-btn-hz.done span { color: rgba(255,255,255,0.8); }
+
+  .quran-btn { width: 100%; padding: 12px; background: var(--bg); border: 1px dashed var(--text-dim); border-radius: 8px; color: var(--text-dim); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; cursor: pointer; margin-top: 10px; transition: 0.2s; }
+  .quran-btn:active { background: var(--border); }
+
+  .remedy-row { display: flex; gap: 10px; margin-bottom: 25px; }
+  .remedy-box { flex: 1; height: 80px; border: 2px solid var(--border); border-radius: 12px; background: #fff; display: flex; align-items: center; justify-content: center; text-align: center; font-weight: 700; font-size: 0.85rem; color: var(--text-dim); text-transform: uppercase; cursor: pointer; transition: 0.2s; user-select: none; position: relative; }
+  .remedy-box.done { background: var(--accent-green); color: #fff; border-color: var(--accent-green); }
+
+  .water-row { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
+  .water-glass { min-width: 45px; height: 45px; border: 2px solid var(--orange-med); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; cursor: pointer; color: var(--orange-med); position: relative; transition: 0.2s; }
+  .water-glass.fill { background: var(--orange-med); color: #fff; }
+  
+  .daily-group-box { border-bottom: 1px solid var(--border); padding: 15px 0; }
+  .daily-title { color: var(--text-dim); font-size: 0.75rem; font-weight: 700; text-transform: lowercase; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+  
+  .task-item { display: flex; align-items: center; padding: 12px 0; font-size: 0.85rem; font-weight: 500; border-bottom: 1px solid #f9f9f9; }
+  .task-item:last-child { border-bottom: none; }
+  .task-label { width: 55%; color: var(--text-active); }
+  .task-action { width: 45%; display: flex; gap: 15px; justify-content: flex-start; align-items: center; }
+  .square-check { width: 32px; height: 32px; border: 2px solid #ccc; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; color: #888; cursor: pointer; transition: 0.2s; user-select: none; background: #fff; position: relative; }
+  .square-check.fill { background: var(--orange-med); border-color: var(--orange-med); color: #fff; }
+
+  /* =========================================
+     D. NAVIGATION, FAB & OVERLAYS
+     ========================================= */
+  #nav { height: 60px; display: flex; background: #fff; border-top: 1px solid var(--border); align-items: center; position: fixed; bottom: 0; width: 100%; z-index: 100; }
+  .nav-btn { flex: 1; text-align: center; font-size: 0.65rem; font-weight: 700; text-transform: lowercase; color: var(--nav-fade); cursor: pointer; }
+  .nav-btn.active { color: var(--nav-active); }
+
+  #fab { position: fixed; bottom: 85px; right: 25px; width: 60px; height: 60px; background: var(--header-bg); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; z-index: 500; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: 0.2s; }
+  #fab:active { transform: scale(0.9); }
+  #fab-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; z-index: 499; flex-direction: column; justify-content: flex-end; align-items: flex-end; padding: 0 25px 160px; }
+  .fab-menu-item { background: #fff; padding: 12px 20px; border-radius: 12px; margin-bottom: 12px; font-weight: 700; font-size: 0.9rem; color: var(--text-active); text-transform: uppercase; box-shadow: 0 4px 15px rgba(0,0,0,0.2); cursor: pointer; }
+
+  .center-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; z-index: 600; align-items: center; justify-content: center; padding: 20px; }
+  .modal-box { background: #fff; width: 100%; max-width: 350px; border-radius: 16px; padding: 24px; }
+  .modal-list-item { padding: 15px; border-bottom: 1px solid var(--border); font-weight: 700; font-size: 0.9rem; cursor: pointer; text-transform: uppercase; }
+  .modal-list-item:last-child { border-bottom: none; }
+  .modal-input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 15px; font-family: inherit; font-size: 0.85rem; outline: none; background: var(--bg); }
+  .modal-btn { padding: 12px 18px; border-radius: 8px; font-weight: 700; font-size: 0.8rem; border: none; cursor: pointer; flex: 1; }
+</style>
+</head>
+<body>
+
+<div id="intro-splash" onclick="skipIntro()">
+  <div class="intro-symbol">⬢</div>
+  <div class="intro-title">PRATIGAHARA</div>
+  <div class="intro-sub">Core Terminal 2026</div>
+  <div class="intro-hint">Tap anywhere to skip</div>
+</div>
+
+<div id="login-screen">
+  <div class="login-title">ENTER AUTHORIZATION</div>
+  <div class="login-hint">(PIN: 2026)</div>
+  <div id="pin-display" class="pin-display">
+    <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+  </div>
+  <div class="pin-pad">
+    <div class="pin-btn" onclick="enterPin(1)">1</div><div class="pin-btn" onclick="enterPin(2)">2</div><div class="pin-btn" onclick="enterPin(3)">3</div>
+    <div class="pin-btn" onclick="enterPin(4)">4</div><div class="pin-btn" onclick="enterPin(5)">5</div><div class="pin-btn" onclick="enterPin(6)">6</div>
+    <div class="pin-btn" onclick="enterPin(7)">7</div><div class="pin-btn" onclick="enterPin(8)">8</div><div class="pin-btn" onclick="enterPin(9)">9</div>
+    <div class="pin-btn" style="background:transparent; border:none;" onclick="clearPin()">C</div><div class="pin-btn" onclick="enterPin(0)">0</div><div class="pin-btn" style="background:transparent; border:none; font-size:1rem;" onclick="clearPin()">⌫</div>
+  </div>
+  <div id="login-error" class="login-error">PIN INCORRECT</div>
+</div>
+
+<script>
+  (function(){
+    var splash = document.getElementById('intro-splash');
+    var login = document.getElementById('login-screen');
+    var introTimer = setTimeout(function() {
+      splash.style.opacity = '0';
+      setTimeout(function() { splash.style.display = 'none'; login.style.display = 'flex'; }, 400);
+    }, 4000);
+    splash.onclick = function() {
+      clearTimeout(introTimer);
+      splash.style.display = 'none';
+      login.style.display = 'flex';
+    };
+  })();
+</script>
+
+<div id="app-core">
+  <div id="header">
+    <div class="header-left">PRATIGAHARA</div>
+    <div class="header-right">
+      <span id="clock">00:00</span>
+      <span id="date-string">Hari, 00 Bulan 0000</span>
+    </div>
+  </div>
+
+  <div id="main-stage">
+    
+    <div id="tab-home" class="tab-pane active">
+      <div class="cal-header" id="cal-title">...</div>
+      <div class="cal-grid" id="calendar"></div>
+      <div class="section-label">Last Activities</div>
+      <div class="wide-segment">
+        <div class="act-row"><span>Input <b>Beras</b></span> <span>Today</span></div>
+        <div class="act-row"><span>Tap Gaming: <b>Tacticool</b></span> <span>10m ago</span></div>
+      </div>
+    </div>
+
+    <div id="tab-project" class="tab-pane">
+      <div class="proj-header-scroll" id="proj-scroll"></div>
+      <div class="proj-content-area" id="proj-content"></div>
+    </div>
+
+    <div id="tab-work" class="tab-pane">
+      <div class="section-label">Daily Alarm Loop</div>
+      <div class="alarm-card">
+        <div class="alarm-info"><b>Work Duty Alarm</b><p>Looped Daily</p></div>
+        <input type="time" class="alarm-time-input" value="08:00" id="work-alarm-time">
+      </div>
+      <div class="section-label">Work Logs</div>
+      <div id="work-log-container">
+        <div class="work-log-item">
+          <h4>Initial Boot Task</h4><p>System operational checks.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-daily" class="tab-pane">
+      <div class="daily-header-control">
+        <div class="daily-square-btn" onclick="document.getElementById('daily-cat-modal').style.display='flex'">☰</div>
+        <div class="daily-active-title" id="daily-title-display">STOK DAPUR</div>
+      </div>
+      <div id="daily-view-stock" class="daily-view active">
+        <div id="active-stock-list">
+          <div class="stock-item" id="stk-1"><div class="stock-info"><h4>Beras</h4><p>Estimasi Sisa: <b>14 Hari</b></p><div class="stock-status status-cukup">Cukup</div></div><button class="btn-habis" onclick="markStockEmpty('stk-1')">HABIS</button></div>
+          <div class="stock-item" id="stk-2"><div class="stock-info"><h4>Minyak Goreng</h4><p>Estimasi Sisa: <b>2 Hari</b></p><div class="stock-status status-menipis">Menipis</div></div><button class="btn-habis" onclick="markStockEmpty('stk-2')">HABIS</button></div>
+        </div>
+        <div class="section-label" style="margin-top:30px;">Riwayat Habis</div>
+        <div id="empty-stock-list"></div>
+      </div>
+      <div id="daily-view-loan" class="daily-view">
+        <div class="loan-item"><h4>Koperasi Desa</h4><p>Catatan: Pembayaran berikutnya tanggal 28, nominal 150k.</p></div>
+      </div>
+      <div id="daily-view-income" class="daily-view">
+        <div id="income-list">
+          <div class="income-item" data-rank="1"><div class="income-rank" onclick="changeIncomeRank(this)">1</div><div class="income-title">Project Tani App</div><div class="income-reach">Reach: Target DP 50% minggu ini</div><div class="income-desc">Deskripsi: Pembuatan modul sinkronisasi database lokal.</div><div class="income-note">Note: Jangan lupa konfirmasi UI ke klien.</div></div>
+          <div class="income-item" data-rank="2"><div class="income-rank" onclick="changeIncomeRank(this)">2</div><div class="income-title">Jasa Desain Flyer</div><div class="income-reach">Reach: Menunggu revisi final</div><div class="income-desc">Deskripsi: Flyer promosi warung kopi cabang baru.</div><div class="income-note">Note: Kirim format PDF & PNG.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-cares" class="tab-pane">
+      <div class="section-label">Shalah (wa sabr)</div>
+      <div class="shalah-row-hz" id="shalah-list"></div>
+
+      <div class="section-label">Qur'an Read</div>
+      <div class="wide-segment" style="margin-bottom: 20px;">
+        <div style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 8px;">Last read: <b style="color: var(--text-active);" id="quran-last-read">Al-Baqarah : 142</b> <span style="font-size: 0.7rem; color: var(--orange-med);" id="quran-days-ago">(2 days ago)</span></div>
+        <button class="quran-btn" onclick="document.getElementById('quran-modal').style.display='flex'">Tap Progress</button>
+      </div>
+
+      <div class="remedy-row" id="remedy-container">
+        <div class="remedy-box" id="rem-1"><span>REMEDY</span></div>
+        <div class="remedy-box" id="rem-2"><span>REMEDY</span></div>
+      </div>
+
+      <div class="section-label">Mineral Water (Every 4h)</div>
+      <div class="water-row" id="water-list"></div>
+      
+      <div id="cares-dynamic-container"></div>
+
+    </div>
+
+  </div> 
+
+  <div id="nav">
+    <div class="nav-btn active" onclick="switchTab('home', this)">home</div>
+    <div class="nav-btn" onclick="switchTab('project', this)">project</div>
+    <div class="nav-btn" onclick="switchTab('work', this)">work</div>
+    <div class="nav-btn" onclick="switchTab('daily', this)">daily</div>
+    <div class="nav-btn" onclick="switchTab('cares', this)">cares</div> </div>
+</div>
+
+<div id="quran-modal" class="center-modal" onclick="if(event.target==this) this.style.display='none'">
+  <div class="modal-box">
+    <h3 style="font-weight:900; margin-bottom:15px; font-size:1.1rem; text-transform:uppercase;">Update Qur'an</h3>
+    <div style="font-size:0.7rem; font-weight:700; color:var(--text-dim); margin-bottom:4px;">SURAH</div>
+    <select id="quran-surah-select" class="modal-input" style="height: 45px;"></select>
+    <div style="font-size:0.7rem; font-weight:700; color:var(--text-dim); margin-bottom:4px;">AYAH NUMBER</div>
+    <input type="number" id="quran-ayah-input" class="modal-input" placeholder="Ayah..." min="1">
+    <div style="display:flex; gap:10px; margin-top:10px;">
+      <button class="modal-btn" style="background:var(--bg); color:var(--text-dim);" onclick="document.getElementById('quran-modal').style.display='none'">Cancel</button>
+      <button class="modal-btn" style="background:var(--text-active); color:#fff;" onclick="saveQuranProgress()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="prospect-modal" class="center-modal" onclick="if(event.target==this) { this.style.display='none'; document.getElementById('new-proj-name').value=''; }">
+  <div class="modal-box">
+    <h3 style="font-weight:900; margin-bottom:15px; font-size:1.1rem;">Add Prospect</h3>
+    <input type="text" id="new-proj-name" class="modal-input" placeholder="Project Title..." autocomplete="off">
+    <div style="font-size:0.7rem; font-weight:700; color:var(--text-dim); margin-bottom:8px;">TAB COLOR</div>
+    <div style="display:flex; gap:12px; margin-bottom:25px;">
+      <div class="color-dot selected" style="background:#5b4fcf;" data-col="#5b4fcf" onclick="selectProjColor(this)"></div>
+      <div class="color-dot" style="background:#2d9e6b;" data-col="#2d9e6b" onclick="selectProjColor(this)"></div>
+      <div class="color-dot" style="background:#e07c2a;" data-col="#e07c2a" onclick="selectProjColor(this)"></div>
+      <div class="color-dot" style="background:#1a1a2e;" data-col="#1a1a2e" onclick="selectProjColor(this)"></div>
+    </div>
+    <div style="display:flex; gap:10px;">
+      <button class="modal-btn" style="background:var(--bg); color:var(--text-dim);" onclick="document.getElementById('prospect-modal').style.display='none'; document.getElementById('new-proj-name').value='';">Cancel</button>
+      <button class="modal-btn" style="background:var(--text-active); color:#fff;" onclick="saveNewProspect()">Create</button>
+    </div>
+  </div>
+</div>
+
+<div id="work-modal" class="center-modal" onclick="if(event.target==this) this.style.display='none'">
+  <div class="modal-box">
+    <h3 id="work-modal-title" style="font-weight:900; margin-bottom:15px; font-size:1.1rem;">NEW ENTRY</h3>
+    <input type="text" id="work-title-input" class="modal-input" placeholder="Title...">
+    <textarea id="work-content-input" class="modal-input" placeholder="Details..." rows="4"></textarea>
+    <div style="display:flex; gap:10px;">
+      <button class="modal-btn" style="background:var(--bg); color:var(--text-dim);" onclick="document.getElementById('work-modal').style.display='none'">Batal</button>
+      <button class="modal-btn" style="background:var(--text-active); color:#fff;" onclick="submitWorkItem()">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div id="daily-cat-modal" class="center-modal" onclick="if(event.target==this) this.style.display='none'">
+  <div class="modal-box" style="padding:0; overflow:hidden;">
+    <div class="modal-list-item" onclick="switchDailyView('stock', 'STOK DAPUR')">📦 STOK DAPUR</div>
+    <div class="modal-list-item" onclick="switchDailyView('loan', 'PINJAMAN (LOAN)')">💸 PINJAMAN (LOAN)</div>
+    <div class="modal-list-item" onclick="switchDailyView('income', 'PEMASUKAN (INCOME)')">💰 PEMASUKAN (INCOME)</div>
+  </div>
+</div>
+
+<div id="universal-edit-modal" class="center-modal">
+  <div class="modal-box" style="border: 1px solid var(--border);">
+    <h3 id="uni-title" style="font-size:0.8rem; margin-bottom:10px; font-weight:900;">TITLE</h3>
+    <input type="text" id="uni-input-short" class="modal-input" style="display:none;" placeholder="Short title/link...">
+    <textarea id="uni-input" class="modal-input" rows="5"></textarea>
+    <div style="display:flex; gap:10px;">
+      <button class="modal-btn" style="background:var(--bg); color:var(--text-dim);" onclick="document.getElementById('universal-edit-modal').style.display='none'">CANCEL</button>
+      <button class="modal-btn" style="background:var(--text-active); color:#fff;" id="uni-save">APPROVE</button>
+    </div>
+  </div>
+</div>
+
+<div id="fab-overlay" onclick="toggleFabOverlay()">
+  <div id="fab-menu-dynamic"></div>
+</div>
+<div id="fab" onclick="toggleFabOverlay()" style="display:none;">+</div>
+
+
+<script>
+  /* =========================================
+     JAVASCRIPT: CATEGORIZED & MODULAR LOGIC
+     ========================================= */
+
+  // --- 1. GLOBAL STATE & SECURITY ---
+  const APP_PIN = "2026"; 
+  let currentInputPin = "";
+  let activeTabState = 'home';
+  let activeWorkMode = 'note';
+
+  function enterPin(digit) { 
+    if(currentInputPin.length < 4) { 
+      currentInputPin += digit; 
+      const dots = document.getElementById('pin-display').children; 
+      for(let i=0; i<4; i++) dots[i].classList.toggle('filled', i < currentInputPin.length); 
+      
+      if(currentInputPin.length === 4) {
+        setTimeout(() => {
+          if(currentInputPin === APP_PIN) {
+            document.getElementById('login-screen').style.display = 'none'; 
+            document.getElementById('app-core').style.display = 'flex'; 
+            document.getElementById('fab').style.display = 'flex';
+            bootSystem(); 
+          } else {
+            document.getElementById('login-error').style.opacity = '1'; 
+            clearPin();
+          }
+        }, 200); 
+      } 
+    } 
+  }
+
+  function clearPin() { 
+    currentInputPin = ""; 
+    const dots = document.getElementById('pin-display').children; 
+    for(let i=0; i<4; i++) dots[i].classList.remove('filled'); 
+  }
+
+  // --- 2. BOOT & INITIALIZATION ---
+  function bootSystem() {
+    updateDateTime();
+    setInterval(updateTimeTick, 1000); // Also handles 00:00 midnight reset
+    renderCalendarUI();
+    renderProjectList();
+    renderProjectWorkspace();
+    initCaresData(); // Formally Health Data
+    
+    const list = document.getElementById('income-list'); 
+    const items = Array.from(list.getElementsByClassName('income-item'));
+    items.sort((a, b) => parseInt(a.getAttribute('data-rank')) - parseInt(b.getAttribute('data-rank')));
+    list.innerHTML = ''; items.forEach(item => list.appendChild(item));
+  }
+
+  // --- 3. CORE NAVIGATION ---
+  function switchTab(targetId, navElement) {
+    activeTabState = targetId;
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + targetId).classList.add('active');
+    navElement.classList.add('active');
+  }
+
+  // --- 4. HEADER (CLOCK & DATE) & RESET LOGIC ---
+  function updateTimeTick() {
+    const now = new Date();
+    document.getElementById('clock').textContent = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
+    
+    // Automatic Midnight Reset (00:00:00)
+    if(now.getHours() === 0 && now.getMinutes() === 0 && now.getSeconds() === 0) {
+      document.querySelectorAll('#tab-cares .done, #tab-cares .fill').forEach(el => {
+        el.classList.remove('done', 'fill');
+        el.dataset.locked = "false";
+        el.style.opacity = "1";
+        el.style.cursor = "pointer";
+      });
+    }
+  }
+
+  function updateDateTime() {
+    const now = new Date();
+    const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+    document.getElementById('date-string').textContent = now.toLocaleDateString('id-ID', options);
+    updateTimeTick();
+  }
+
+  // --- 5. TAB HOME: CALENDAR ---
+  function renderCalendarUI() {
+    const grid = document.getElementById('calendar'); 
+    const now = new Date();
+    const monthsId = ["JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"];
+    document.getElementById('cal-title').textContent = `${monthsId[now.getMonth()]} ${now.getFullYear()}`;
+    grid.innerHTML = '';
+    ['M','S','S','R','K','J','S'].forEach(day => { const d = document.createElement('div'); d.className = 'cal-h'; d.textContent = day; grid.appendChild(d); });
+    const firstDayIndex = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
+    const totalDaysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    for(let i=0; i<firstDayIndex; i++) grid.appendChild(document.createElement('div'));
+    for(let i=1; i<=totalDaysInMonth; i++) {
+      const cell = document.createElement('div'); cell.className = 'cal-d active-m';
+      if(new Date(now.getFullYear(), now.getMonth(), i).getDay() === 0) cell.classList.add('sunday');
+      if(i === now.getDate()) cell.classList.add('today');
+      cell.textContent = i; cell.style.position = 'relative';
+      if(i === 20 || i === 25) { const dot = document.createElement('div'); dot.className = 'red-pale-dot'; cell.appendChild(dot); }
+      grid.appendChild(cell);
+    }
+  }
+
+  // --- 6. TAB PROJECT (KANBAN & VERTICAL LINKS) ---
+  let activeProjectId = 'p1'; let tempPickedColor = '#5b4fcf';
+  
+  let projectDatabase = [ 
+    { 
+      id: 'p1', title: 'Tani App', color: '#2d9e6b', 
+      desc: 'Project paragraph of descriptions in a square, the height depent on how heigh the paragraph is.', 
+      activeStepIndex: 0,
+      stepsData: [
+        { title: "Sketsa Fungsi", tasks: [{desc: "Intro", done: true}, {desc: "Navigation panel", done: true}, {desc: "Sketsa gambaran per nav.tab", done: false}] },
+        { title: "UI Structuring", tasks: [{desc: "Build Wireframe", done: false}] },
+        { title: "Backend API", tasks: [] },
+        { title: "Final Polish", tasks: [] }
+      ],
+      links: [
+        { id: 'l1', type: 'Live', url: 'https://main5tudio.github.io' },
+        { id: 'l2', type: 'Github', url: 'https://github.com/main5tudio' }
+      ],
+      kanbans: [
+        { id: 'k1', type: 'checklist', title: 'CHECKLIST', tag: 'dev', content: 'Backend Logic <span class="tag-done">[done]</span>' },
+        { id: 'k2', type: 'note', title: 'NOTETEXT', tag: 'design', content: 'Review UI colors with Commrade.' }
+      ],
+      shops: [
+        { id: 's1', type: 'Gumroad', url: 'https://gumroad.com/main5tudio' }
+      ]
+    }, 
+    { 
+      id: 'p2', title: 'TACLINE', color: '#5b4fcf', 
+      desc: 'Tactical shooter 12v12 squad mechanics development.', 
+      activeStepIndex: 0,
+      stepsData: [
+        { title: "Map Blockout", tasks: [{desc: "Procedural gen logic", done: false}] },
+        { title: "Squad Logic", tasks: [] }
+      ],
+      links: [], kanbans: [], shops: []
+    } 
+  ];
+
+  function renderProjectList() {
+    const scrollContainer = document.getElementById('proj-scroll'); scrollContainer.innerHTML = '';
+    projectDatabase.forEach(proj => {
+      const chip = document.createElement('div'); chip.className = `proj-tab-chip ${proj.id === activeProjectId ? 'active' : ''}`;
+      chip.style.background = proj.color; chip.textContent = proj.title;
+      chip.onclick = () => { activeProjectId = proj.id; renderProjectList(); renderProjectWorkspace(); }; scrollContainer.appendChild(chip);
+    });
+    const addBtn = document.createElement('div'); addBtn.className = 'proj-tab-chip proj-add-btn'; addBtn.textContent = '[ + prospect ]'; 
+    addBtn.onclick = () => { document.getElementById('prospect-modal').style.display='flex'; }; scrollContainer.appendChild(addBtn);
+  }
+
+  function getRomanNumeral(num) {
+    const roman = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+    return roman[(num - 1) % 10] || num;
+  }
+
+  function calculateProgress(steps) {
+    let totalTasks = 0; let doneTasks = 0;
+    steps.forEach(s => {
+      totalTasks += s.tasks.length;
+      doneTasks += s.tasks.filter(t => t.done).length;
+    });
+    if (totalTasks === 0) return 0;
+    return Math.round((doneTasks / totalTasks) * 100);
+  }
+
+  function renderProjectWorkspace() {
+    const currentProj = projectDatabase.find(p => p.id === activeProjectId);
+    if(!currentProj) return;
+
+    const progressPercent = calculateProgress(currentProj.stepsData);
+
+    let stepDotsHtml = '';
+    currentProj.stepsData.forEach((step, index) => {
+      let isDone = step.tasks.length > 0 && step.tasks.every(t => t.done);
+      let dotClass = 'step-dot';
+      if (isDone) dotClass += ' done';
+      if (index === currentProj.activeStepIndex) dotClass += ' active';
+
+      stepDotsHtml += `<div class="step-dot-wrap" onclick="switchActiveStep(${index})"><span class="step-roman">${getRomanNumeral(index + 1)}.</span><div class="${dotClass}"></div></div>`;
+    });
+
+    const activeStep = currentProj.stepsData[currentProj.activeStepIndex];
+    let subtasksHtml = activeStep.tasks.map((task, idx) => `
+      <div class="subtask-row" onclick="toggleSubtask(${currentProj.activeStepIndex}, ${idx})">
+        <div class="subtask-dot ${task.done ? 'fill' : ''}"></div><span>${task.desc}</span>
+      </div>
+    `).join('');
+
+    let linksHtml = currentProj.links.map(l => 
+      `<div class="v-link-item"><span class="v-link-type">[${l.type}]</span> <span class="v-link-sep">|</span><a href="${l.url}" class="v-link-url" target="_blank">${l.url}</a><span class="v-link-action" onclick="window.open('${l.url}','_blank')">↗️</span><span class="v-link-action" style="color:var(--bold-red); margin-left:5px;" onclick="deleteProjItem('links', '${l.id}')">❎</span></div>`
+    ).join('');
+
+    let kanbanHtml = currentProj.kanbans.map(k => 
+      `<div class="kanban-card">
+        <div class="kanban-header"><div class="kanban-title-wrap"><h5>${k.title}</h5>${k.tag ? `<span class="kanban-tag">[${k.tag}]</span>` : ''}</div><span class="v-link-action" style="color:var(--bold-red);" onclick="deleteProjItem('kanbans', '${k.id}')">❎</span></div>
+        ${k.type === 'checklist' ? `<div class="kanban-check-row"><input type="checkbox" checked> <p style="margin:0;">${k.content}</p></div>` : `<p>${k.content}</p>`}
+      </div>`
+    ).join('');
+
+    let shopsHtml = currentProj.shops.map(s => 
+      `<div class="v-link-item"><span class="v-link-type">[${s.type}]</span> <span class="v-link-sep">|</span><a href="${s.url}" class="v-link-url" target="_blank">${s.url}</a><span class="v-link-action" onclick="window.open('${s.url}','_blank')">↗️</span><span class="v-link-action" style="color:var(--bold-red); margin-left:5px;" onclick="deleteProjItem('shops', '${s.id}')">❎</span></div>`
+    ).join('');
+
+    let html = `
+      <div class="proj-paragraph" id="lp-desc-${currentProj.id}" oncontextmenu="return false;">${currentProj.desc || "Tap 2s to write project description..."}</div>
+      <div class="progress-section"><div class="progress-line-thick"><div class="step-container">${stepDotsHtml}</div></div><div class="step-input-row"><span>[ <span class="step-count-box" id="lp-step-count-${currentProj.id}" oncontextmenu="return false;">${currentProj.stepsData.length}</span> + ]</span><span style="margin-left:auto; color:var(--accent-green)">${progressPercent}% Progress</span></div></div>
+      <div class="step-detail-box"><div class="step-title-row"><b id="lp-step-title-${currentProj.activeStepIndex}" oncontextmenu="return false;">[${currentProj.activeStepIndex + 1}] ${activeStep.title || 'Untitled Phase'}</b><span class="step-add-task" onclick="addNewSubtask(${currentProj.activeStepIndex})">+</span></div><div>${subtasksHtml || '<span style="font-size:0.7rem; color:#aaa; font-style:italic;">No tasks added yet.</span>'}</div></div>
+      <div class="section-label">WORK LINKS</div><div class="v-link-list">${linksHtml}</div>
+      <div class="section-label">WORKSPACE BOARD</div><div class="kanban-grid">${kanbanHtml}</div>
+      <div class="section-label">FINANCE & MARKET</div><div class="v-link-list">${shopsHtml}</div>
+    `;
+    
+    document.getElementById('proj-content').innerHTML = html;
+
+    bindUniversalLongPress(document.getElementById(`lp-desc-${currentProj.id}`), () => { openUniModal("EDIT DESCRIPTION", currentProj.desc || '', (val) => { currentProj.desc = val; renderProjectWorkspace(); }); });
+    bindUniversalLongPress(document.getElementById(`lp-step-title-${currentProj.activeStepIndex}`), () => { openUniModal("RENAME PHASE", activeStep.title || '', (val) => { activeStep.title = val; renderProjectWorkspace(); }, true); });
+    bindUniversalLongPress(document.getElementById(`lp-step-count-${currentProj.id}`), () => { openUniModal("TOTAL STEPS (Will add/remove phases)", currentProj.stepsData.length, (val) => { 
+        let newCount = parseInt(val);
+        if(!isNaN(newCount) && newCount > 0) { 
+          if(newCount > currentProj.stepsData.length) { for(let i=currentProj.stepsData.length; i<newCount; i++) currentProj.stepsData.push({title: `Phase ${i+1}`, tasks: []}); } 
+          else if (newCount < currentProj.stepsData.length) { currentProj.stepsData = currentProj.stepsData.slice(0, newCount); if(currentProj.activeStepIndex >= newCount) currentProj.activeStepIndex = newCount - 1; }
+          renderProjectWorkspace(); 
+        }
+      }, true);
+    });
+  }
+
+  function switchActiveStep(index) { const proj = projectDatabase.find(p => p.id === activeProjectId); proj.activeStepIndex = index; renderProjectWorkspace(); }
+  function toggleSubtask(stepIndex, taskIndex) { const proj = projectDatabase.find(p => p.id === activeProjectId); const task = proj.stepsData[stepIndex].tasks[taskIndex]; task.done = !task.done; renderProjectWorkspace(); }
+  function addNewSubtask(stepIndex) { const proj = projectDatabase.find(p => p.id === activeProjectId); const desc = prompt("Enter subtask description:"); if(desc && desc.trim()) { proj.stepsData[stepIndex].tasks.push({desc: desc.trim(), done: false}); renderProjectWorkspace(); } }
+  function deleteProjItem(arrayName, itemId) { const proj = projectDatabase.find(p => p.id === activeProjectId); proj[arrayName] = proj[arrayName].filter(i => i.id !== itemId); renderProjectWorkspace(); }
+  function selectProjColor(element) { document.querySelectorAll('.color-dot').forEach(dot => { dot.classList.remove('selected'); dot.style.borderColor = 'transparent'; }); element.classList.add('selected'); element.style.borderColor = 'var(--text-active)'; tempPickedColor = element.dataset.col; }
+  function saveNewProspect() { const newTitle = document.getElementById('new-proj-name').value.trim(); if(!newTitle) return; const newId = 'p' + (projectDatabase.length + 1); projectDatabase.push({ id: newId, title: newTitle, color: tempPickedColor, desc: '', activeStepIndex: 0, stepsData: [{title: "Phase 1", tasks: []}], links: [], kanbans: [], shops: [] }); activeProjectId = newId; renderProjectList(); renderProjectWorkspace(); document.getElementById('prospect-modal').style.display = 'none'; document.getElementById('new-proj-name').value = ''; }
+
+  // --- Universal Long Press & Dynamic Modal Logic ---
+  let universalPressTimer;
+  function bindUniversalLongPress(el, callback) {
+    if(!el) return;
+    el.addEventListener('touchstart', (e) => { universalPressTimer = setTimeout(callback, 2000); });
+    el.addEventListener('touchend', () => clearTimeout(universalPressTimer));
+    el.addEventListener('touchmove', () => clearTimeout(universalPressTimer));
+    el.addEventListener('mousedown', (e) => { universalPressTimer = setTimeout(callback, 2000); });
+    el.addEventListener('mouseup', () => clearTimeout(universalPressTimer));
+    el.addEventListener('mouseleave', () => clearTimeout(universalPressTimer));
+  }
+
+  function openUniModal(title, val, onSave, useShortInput = false, placeholder2 = null) {
+    document.getElementById('uni-title').innerText = title;
+    const shortIn = document.getElementById('uni-input-short'); const textIn = document.getElementById('uni-input');
+    if(useShortInput) { shortIn.style.display = 'block'; textIn.style.display = 'none'; shortIn.value = val; } 
+    else { shortIn.style.display = placeholder2 ? 'block' : 'none'; if(placeholder2) { shortIn.placeholder = placeholder2; shortIn.value = ''; } textIn.style.display = 'block'; textIn.value = val; }
+    document.getElementById('universal-edit-modal').style.display = 'flex';
+    document.getElementById('uni-save').onclick = () => { let finalVal = useShortInput ? shortIn.value : textIn.value; if(placeholder2) onSave(shortIn.value, textIn.value); else onSave(finalVal); document.getElementById('universal-edit-modal').style.display = 'none'; };
+  }
+
+  // --- 7. TAB WORK ---
+  function openWorkInput(mode) { activeWorkMode = mode; document.getElementById('work-modal-title').textContent = mode === 'note' ? 'WRITE NOTE' : 'CHECKLIST SYSTEM'; document.getElementById('work-modal').style.display = 'flex'; }
+  function submitWorkItem() { const titleVal = document.getElementById('work-title-input').value; const detailVal = document.getElementById('work-content-input').value; if(!titleVal) return; const container = document.getElementById('work-log-container'); const itemBlock = document.createElement('div'); itemBlock.className = 'work-log-item'; if(activeWorkMode === 'checklist') itemBlock.innerHTML = `<h4>${titleVal}</h4><div class="checklist-box"><input type="checkbox"> <span>${detailVal}</span></div>`; else itemBlock.innerHTML = `<h4>${titleVal}</h4><p>${detailVal}</p>`; container.prepend(itemBlock); document.getElementById('work-title-input').value = ''; document.getElementById('work-content-input').value = ''; document.getElementById('work-modal').style.display = 'none'; }
+
+  // --- 8. TAB DAILY ---
+  function switchDailyView(viewId, displayTitle) { document.querySelectorAll('.daily-view').forEach(v => v.classList.remove('active')); document.getElementById('daily-view-' + viewId).classList.add('active'); document.getElementById('daily-title-display').textContent = displayTitle; document.getElementById('daily-cat-modal').style.display = 'none'; }
+  function markStockEmpty(itemId) { const stockEl = document.getElementById(itemId); const btn = stockEl.querySelector('button'); if(!stockEl.classList.contains('gray-pale')) { stockEl.classList.add('gray-pale'); btn.textContent = "HAPUS"; btn.className = "btn-hapus"; document.getElementById('empty-stock-list').appendChild(stockEl); } else { stockEl.remove(); } }
+  function changeIncomeRank(rankBtnElement) { const newRankVal = prompt("Masukkan nomor urutan prioritas baru:", rankBtnElement.textContent); if(newRankVal !== null && !isNaN(newRankVal) && newRankVal.trim() !== "") { rankBtnElement.closest('.income-item').setAttribute('data-rank', parseInt(newRankVal)); rankBtnElement.textContent = newRankVal; const container = document.getElementById('income-list'); const itemsArray = Array.from(container.getElementsByClassName('income-item')); itemsArray.sort((a, b) => parseInt(a.getAttribute('data-rank')) - parseInt(b.getAttribute('data-rank'))); container.innerHTML = ''; itemsArray.forEach(itemNode => container.appendChild(itemNode)); } }
+
+  // --- 9. TAB CARES (FORMERLY HEALTH) WITH 20-SECOND LOCK SYSTEM ---
+  
+  // Custom Daily Routine Data
+  let caresCustomData = [
+    { id: 'cg1', title: '>warm rice', items: [ {id: 'c1_1', label: 'today', max: 1}, {id: 'c1_2', label: 'your twice', max: 1} ] },
+    { id: 'cg2', title: '>gaming', items: [ {id: 'c2_1', label: 'tacticool', max: 2} ] },
+    { id: 'cg3', title: '>self sport', items: [ {id: 'c3_1', label: 'sit-ups', max: 2} ] },
+    { id: 'cg4', title: '>cleanse', items: [ {id: 'c4_1', label: 'shower', max: 2}, {id: 'c4_2', label: 'dishwashing', max: 2}, {id: 'c4_3', label: 'room clean', max: 2} ] }
+  ];
+
+  // The Generic 20-Second Lock Toggle Function
+  function toggleCaresItem(el) {
+    if (el.dataset.locked === "true") return; // Block edit if locked
+    
+    // Determine active class based on element shape
+    let activeClass = (el.classList.contains('water-glass') || el.classList.contains('square-check')) ? 'fill' : 'done';
+    let isActive = el.classList.toggle(activeClass);
+    
+    if (isActive) {
+      // Start 20s lock timer
+      let timer = setTimeout(() => {
+        el.dataset.locked = "true";
+        el.style.opacity = "0.7"; // Visual cue it is locked
+        el.style.cursor = "default";
+      }, 20000); // 20 Seconds
+      el.dataset.lockTimer = timer;
+    } else {
+      // User untoggled within 20s window, cancel lock
+      clearTimeout(el.dataset.lockTimer);
+      delete el.dataset.lockTimer;
+    }
+  }
+
+  function initCaresData() {
+    // 1. Shalah
+    const shalahContainer = document.getElementById('shalah-list');
+    ["SUBH 04:32", "DZUHR 11:50", "ASHR 15:10", "MAGHRB 17:55", "ISYA 19:05"].forEach(timeStr => {
+      const btn = document.createElement('div'); btn.className = 'shalah-btn-hz';
+      btn.innerHTML = `${timeStr.split(' ')[0]} <span>${timeStr.split(' ')[1]}</span>`;
+      btn.onclick = () => toggleCaresItem(btn); 
+      shalahContainer.appendChild(btn);
+    });
+
+    // 2. Qur'an Select (unchanged)
+    const surahList = ["Al-Fatihah","Al-Baqarah","Ali 'Imran","An-Nisa'","Al-Ma'idah","Al-An'am","Al-A'raf","Al-Anfal","At-Taubah","Yunus","Hud","Yusuf","Ar-Ra'd","Ibrahim","Al-Hijr","An-Nahl","Al-Isra'","Al-Kahf","Maryam","Taha","Al-Anbiya'","Al-Hajj","Al-Mu'minun","An-Nur","Al-Furqan","Asy-Syu'ara'","An-Naml","Al-Qasas","Al-'Ankabut","Ar-Rum","Luqman","As-Sajdah","Al-Ahzab","Saba'","Fatir","Yasin","As-Saffat","Sad","Az-Zumar","Gafir","Fussilat","Asy-Syura","Az-Zukhruf","Ad-Dukhan","Al-Jasiyah","Al-Ahqaf","Muhammad","Al-Fath","Al-Hujurat","Qaf","Az-Zariyat","At-Tur","An-Najm","Al-Qamar","Ar-Rahman","Al-Waqi'ah","Al-Hadid","Al-Mujadilah","Al-Hasyr","Al-Mumtahanah","As-Saff","Al-Jumu'ah","Al-Munafiqun","At-Tagabun","At-Talaq","At-Tahrim","Al-Mulk","Al-Qalam","Al-Haqqah","Al-Ma'arij","Nuh","Al-Jinn","Al-Muzzammil","Al-Muddassir","Al-Qiyamah","Al-Insan","Al-Mursalat","An-Naba'","An-Nazi'at","'Abasa","At-Takwir","Al-Infitar","Al-Mutaffifin","Al-Insyiqaq","Al-Buruj","At-Tariq","Al-A'la","Al-Gasyiyah","Al-Fajr","Al-Balad","Asy-Syams","Al-Lail","Ad-Duha","Asy-Syarh","At-Tin","Al-'Alaq","Al-Qadr","Al-Bayyinah","Az-Zalzalah","Al-'Adiyat","Al-Qari'ah","At-Takasur","Al-'Asr","Al-Humazah","Al-Fil","Quraisy","Al-Ma'un","Al-Kausar","Al-Kafirun","An-Nasr","Al-Lahab","Al-Ikhlas","Al-Falaq","An-Nas"];
+    const selectBox = document.getElementById('quran-surah-select');
+    surahList.forEach((name, idx) => { const opt = document.createElement('option'); opt.value = name; opt.textContent = `${idx + 1}. ${name}`; selectBox.appendChild(opt); });
+    selectBox.value = "Al-Baqarah";
+
+    // 3. Remedies
+    [document.getElementById('rem-1'), document.getElementById('rem-2')].forEach(rem => {
+      let pressTimeoutId; let triggeredLongPress = false;
+      const onStartPress = () => { triggeredLongPress = false; pressTimeoutId = setTimeout(() => { triggeredLongPress = true; let currentLabel = rem.querySelector('span').textContent; let newLabel = prompt("Rename this remedy/supplement:", currentLabel); if(newLabel && newLabel.trim() !== "") { rem.querySelector('span').textContent = newLabel.trim(); } }, 600); };
+      const onCancelPress = () => { clearTimeout(pressTimeoutId); };
+      rem.addEventListener('touchstart', onStartPress); rem.addEventListener('touchend', onCancelPress); rem.addEventListener('touchmove', onCancelPress);
+      rem.addEventListener('mousedown', onStartPress); rem.addEventListener('mouseup', onCancelPress); rem.addEventListener('mouseleave', onCancelPress);
+      rem.addEventListener('click', () => { if(!triggeredLongPress) toggleCaresItem(rem); });
+    });
+
+    // 4. Mineral Water
+    const waterContainer = document.getElementById('water-list');
+    for(let i=1; i<=8; i++) { 
+      const glass = document.createElement('div'); glass.className = 'water-glass'; glass.textContent = i; 
+      glass.onclick = () => toggleCaresItem(glass); 
+      waterContainer.appendChild(glass); 
+    }
+
+    // 5. Render Initial Custom Categories
+    renderCaresDynamic();
+  }
+
+  function renderCaresDynamic() {
+    const container = document.getElementById('cares-dynamic-container');
+    container.innerHTML = '';
+    caresCustomData.forEach(cat => {
+      let html = `<div class="daily-group-box"><div class="daily-title"><span>${cat.title}</span> <span style="color:var(--bold-red); font-size:0.65rem; cursor:pointer;" onclick="deleteCaresCat('${cat.id}')">❎</span></div>`;
+      cat.items.forEach(item => {
+        let checks = '';
+        for(let i=1; i<=item.max; i++) { checks += `<div class="square-check" onclick="toggleCaresItem(this)">${i}</div>`; }
+        html += `<div class="task-item">
+            <span class="task-label">${item.label}</span>
+            <div class="task-action">${checks} <span style="color:var(--bold-red); font-size:0.7rem; font-weight:900; cursor:pointer;" onclick="deleteCaresItem('${cat.id}', '${item.id}')">×</span></div>
+          </div>`;
+      });
+      html += `</div>`;
+      container.insertAdjacentHTML('beforeend', html);
+    });
+  }
+
+  function deleteCaresCat(catId) { caresCustomData = caresCustomData.filter(c => c.id !== catId); renderCaresDynamic(); }
+  function deleteCaresItem(catId, itemId) { let cat = caresCustomData.find(c => c.id === catId); cat.items = cat.items.filter(i => i.id !== itemId); renderCaresDynamic(); }
+
+  function saveQuranProgress() {
+    const selectedSurah = document.getElementById('quran-surah-select').value; const inputAyah = document.getElementById('quran-ayah-input').value;
+    if(inputAyah) { 
+      document.getElementById('quran-last-read').textContent = `${selectedSurah} : ${inputAyah}`; 
+      const dayEl = document.getElementById('quran-days-ago'); dayEl.textContent = `(0 days ago)`; dayEl.style.color = '#2e7d32'; 
+    }
+    document.getElementById('quran-modal').style.display = 'none';
+  }
+
+  // --- 10. DYNAMIC FAB ---
+  function toggleFabOverlay() {
+    const overlayWindow = document.getElementById('fab-overlay'); const dynamicMenu = document.getElementById('fab-menu-dynamic');
+    if(overlayWindow.style.display === 'flex') { overlayWindow.style.display = 'none'; } 
+    else {
+      dynamicMenu.innerHTML = '';
+      
+      if(activeTabState === 'work') {
+        const ops = [{ label: 'WRITE NOTE', fn: () => openWorkInput('note') }, { label: 'CHECKLIST SYSTEM', fn: () => openWorkInput('checklist') }];
+        ops.forEach(op => { const itemNode = document.createElement('div'); itemNode.className = 'fab-menu-item'; itemNode.textContent = op.label; itemNode.onclick = (e) => { e.stopPropagation(); op.fn(); overlayWindow.style.display='none'; }; dynamicMenu.appendChild(itemNode); });
+      } else if(activeTabState === 'project') {
+        const projOps = [ { label: 'ADD WORK LINK', fn: () => triggerProjAdd('link') }, { label: 'ADD TO DO LIST', fn: () => triggerProjAdd('checklist') }, { label: 'ADD TEXT NOTE', fn: () => triggerProjAdd('note') }, { label: 'ADD SHOP LINK', fn: () => triggerProjAdd('shop') } ];
+        projOps.forEach(op => { const itemNode = document.createElement('div'); itemNode.className = 'fab-menu-item'; itemNode.textContent = op.label; itemNode.onclick = (e) => { e.stopPropagation(); op.fn(); overlayWindow.style.display='none'; }; dynamicMenu.appendChild(itemNode); });
+      } else if(activeTabState === 'cares') {
+        const careOps = [ { label: 'NEW CATEGORIZE', fn: () => triggerCaresAdd('category') }, { label: 'NEW VARIABLE', fn: () => triggerCaresAdd('variable') } ];
+        careOps.forEach(op => { const itemNode = document.createElement('div'); itemNode.className = 'fab-menu-item'; itemNode.textContent = op.label; itemNode.onclick = (e) => { e.stopPropagation(); op.fn(); overlayWindow.style.display='none'; }; dynamicMenu.appendChild(itemNode); });
+      } else {
+        const eventNode = document.createElement('div'); eventNode.className = 'fab-menu-item'; eventNode.textContent = 'EVENT'; dynamicMenu.appendChild(eventNode);
+      }
+      overlayWindow.style.display = 'flex';
+    }
+  }
+
+  function triggerProjAdd(type) {
+    const proj = projectDatabase.find(p => p.id === activeProjectId);
+    if(type === 'link') { openUniModal("ADD WORK LINK", "", (typeLabel, url) => { if(typeLabel.trim() && url.trim()) { proj.links.push({ id: 'l'+Date.now(), type: typeLabel.trim(), url: url.trim() }); renderProjectWorkspace(); } }, false, "Type (e.g. Live, Github)..."); document.getElementById('uni-input').placeholder = "URL (https://...)";
+    } else if(type === 'checklist') { openUniModal("ADD TO DO LIST", "", (title, content) => { let tag = prompt("Enter tag (optional):", "dev"); if(title.trim()) { proj.kanbans.push({ id: 'k'+Date.now(), type: 'checklist', title: title.trim(), tag: tag||'', content: content.trim() }); renderProjectWorkspace(); } }, false, "Title...");
+    } else if(type === 'note') { openUniModal("ADD TEXT NOTE", "", (title, content) => { let tag = prompt("Enter tag (optional):", "design"); if(title.trim()) { proj.kanbans.push({ id: 'n'+Date.now(), type: 'note', title: title.trim(), tag: tag||'', content: content.trim() }); renderProjectWorkspace(); } }, false, "Title...");
+    } else if(type === 'shop') { openUniModal("ADD SHOP LINK", "", (typeLabel, url) => { if(typeLabel.trim() && url.trim()) { proj.shops.push({ id: 's'+Date.now(), type: typeLabel.trim(), url: url.trim() }); renderProjectWorkspace(); } }, false, "Type (e.g. Itch.io, GooglePlay)..."); document.getElementById('uni-input').placeholder = "URL (https://...)"; }
+  }
+
+  // Handle Cares (Health) Dynamic additions
+  function triggerCaresAdd(type) {
+    if(type === 'category') {
+      openUniModal("NEW CATEGORY", "", (val) => {
+        if(val.trim()) { caresCustomData.push({ id: 'cg'+Date.now(), title: (val.startsWith('>')?val:'>'+val), items: [] }); renderCaresDynamic(); }
+      }, true, "Category Name (e.g. >learning)");
+    } else if (type === 'variable') {
+      openUniModal("NEW VARIABLE", "", (varName, countStr) => {
+        let catName = prompt("Add to which category? (e.g. >gaming)");
+        if(!catName) return; if(!catName.startsWith('>')) catName = '>' + catName;
+        let cat = caresCustomData.find(c => c.title.toLowerCase() === catName.toLowerCase());
+        if(!cat) { cat = { id: 'cg'+Date.now(), title: catName, items: [] }; caresCustomData.push(cat); }
+        let max = parseInt(countStr) || 1;
+        cat.items.push({ id: 'ci'+Date.now(), label: varName.trim(), max: max });
+        renderCaresDynamic();
+      }, false, "Variable Name (e.g. Push-ups)");
+      document.getElementById('uni-input').placeholder = "Number of items daily (e.g. 2)";
+    }
+  }
+</script>
+</body>
+</html>

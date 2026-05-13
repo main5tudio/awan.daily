@@ -1,2 +1,2 @@
-# awan.daily
+# own.app
 Created via Acode
