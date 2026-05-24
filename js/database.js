@@ -1,37 +1,43 @@
-/* =========================================
-   DATABASE & AUTO-SAVE LOGIC
-   ========================================= */
+const databases = new Appwrite.Databases(client);
 
-// Load existing data or set defaults
-window.AppData = JSON.parse(localStorage.getItem('pratigahara_db')) || {
-  projects: [ 
-    { 
-      id: 'p1', title: 'Tani App', color: '#2d9e6b', 
-      desc: 'Project paragraph of descriptions...', 
-      activeStepIndex: 0,
-      stepsData: [{ title: "Sketsa Fungsi", tasks: [{desc: "Intro", done: true}] }],
-      links: [], kanbans: [], shops: []
-    },
-    { 
-      id: 'p2', title: 'TACLINE', color: '#5b4fcf', 
-      desc: 'Tactical shooter 12v12 squad mechanics.', 
-      activeStepIndex: 0,
-      stepsData: [{ title: "Map Blockout", tasks: [] }],
-      links: [], kanbans: [], shops: []
-    } 
-  ],
-  cares: [
-    { id: 'cg1', title: '>warm rice', items: [ {id: 'c1_1', label: 'today', max: 1} ] },
-    { id: 'cg2', title: '>gaming', items: [ {id: 'c2_1', label: 'tacticool', max: 2} ] }
-  ],
-  userSettings: { pin: "2026", theme: "ghibli-pastel" }
-};
+const DATABASE_ID = '65fa92d1948332db9c6d';
+const COLLECTION_ID = '65fa92daef45b73d2b21'; // Real Collection ID mapped
 
-// Global Save Function - Call this after any edit
-window.saveSystem = () => {
-  localStorage.setItem('pratigahara_db', JSON.stringify(window.AppData));
-  console.log("System Sync: Done.");
-};
-window.saveLog = saveLog;
+async function fetchUserLogs(userId) {
+    try {
+        const response = await databases.listDocuments(
+            DATABASE_ID,
+            COLLECTION_ID,
+            [Appwrite.Query.equal('userId', userId)]
+        );
+        return response.documents;
+    } catch (error) {
+        console.error("Error fetching documents from Appwrite:", error);
+        return [];
+    }
+}
+
+async function saveLog(logData) {
+    try {
+        const response = await databases.createDocument(
+            DATABASE_ID,
+            COLLECTION_ID,
+            Appwrite.ID.unique(),
+            {
+                userId: logData.userId,
+                type: logData.type,
+                content: logData.content,
+                timestamp: logData.timestamp || new Date().toISOString()
+            }
+        );
+        return response;
+    } catch (error) {
+        console.error("Error writing document to Appwrite:", error);
+        throw error;
+    }
+}
+
+// Global Exports
+window.databases = databases;
 window.fetchUserLogs = fetchUserLogs;
-
+window.saveLog = saveLog;

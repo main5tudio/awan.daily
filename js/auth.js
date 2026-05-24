@@ -1,40 +1,57 @@
-let currentInputPin = "";
+const client = new Appwrite.Client();
+client
+    .setEndpoint('https://cloud.appwrite.io/v1')
+    .setProject('65fa9194e9f9bd927f61');
 
-function enterPin(digit) { 
-  if(currentInputPin.length < 4) { 
-    currentInputPin += digit; 
-    const dots = document.getElementById('pin-display').children; 
-    for(let i=0; i<4; i++) dots[i].classList.toggle('filled', i < currentInputPin.length); 
-    
-    if(currentInputPin.length === 4) {
-      setTimeout(() => {
-        if(currentInputPin === window.AppData.userSettings.pin) {
-          document.getElementById('login-screen').style.display = 'none'; 
-          document.getElementById('app-core').style.display = 'flex'; 
-          document.getElementById('fab').style.display = 'flex';
-          bootSystem(); // Defined in main.js
-        } else {
-          document.getElementById('login-error').style.opacity = '1'; 
-          clearPin();
+const account = new Appwrite.Account(client);
+
+async function checkSession() {
+    try {
+        const session = await account.get();
+        window.appState.user = session;
+        console.log("Logged in as:", session.name);
+        
+        // Pull database entries immediately after login verified
+        if (window.fetchUserLogs) {
+            window.appState.logs = await window.fetchUserLogs(session.$id);
         }
-      }, 200); 
-    } 
-  } 
+        
+        // Refresh UI
+        if (typeof window.renderCalendar === 'function') window.renderCalendar();
+        if (typeof window.renderLastActivities === 'function') window.renderLastActivities();
+        
+        return session;
+    } catch (error) {
+        console.log("No active session found.");
+        window.appState.user = null;
+        return null;
+    }
 }
 
-function clearPin() { 
-  currentInputPin = ""; 
-  const dots = document.getElementById('pin-display').children; 
-  for(let i=0; i<4; i++) dots[i].classList.remove('filled'); 
+async function login(email, password) {
+    try {
+        await account.createEmailPasswordSession(email, password);
+        return await checkSession();
+    } catch (error) {
+        console.error("Login failed:", error);
+        throw error;
+    }
 }
 
-// Inside your successful login/session check block:
-const user = await account.get();
-appState.user = user;
+async function logout() {
+    try {
+        await account.deleteSession('current');
+        window.appState.user = null;
+        window.appState.logs = [];
+        if (typeof window.renderCalendar === 'function') window.renderCalendar();
+        if (typeof window.renderLastActivities === 'function') window.renderLastActivities();
+    } catch (error) {
+        console.error("Logout failed:", error);
+    }
+}
 
-// ADD THIS LINE to pull your history on startup:
-appState.logs = await window.fetchUserLogs(user.$id); 
-
-// Refresh your UI
-renderCalendar();
-renderLastActivities();
+// Global Exports
+window.account = account;
+window.checkSession = checkSession;
+window.login = login;
+window.logout = logout;
