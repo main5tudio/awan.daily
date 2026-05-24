@@ -24,80 +24,434 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   body { font-family: 'DM Sans', sans-serif; background-color: var(--bg); color: var(--text-active); overflow: hidden; height: 100vh; }
+
+  /* SCREEN LAYOUTS */
+  #login-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--donker); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
+  #app-core { display: none; width: 100vw; height: 100vh; flex-direction: column; background-color: var(--bg); }
+  
+  /* PIN LOGIN DESIGNS */
+  .pin-container { display: flex; flex-direction: column; align-items: center; gap: 30px; width: 100%; max-width: 280px; }
+  .logo-area { text-align: center; color: #ffffff; }
+  .logo-area h1 { font-size: 1.8rem; font-weight: 900; letter-spacing: 2px; margin-bottom: 4px; }
+  .logo-area p { font-size: 0.75rem; color: rgba(255,255,255,0.4); font-weight: 500; }
+  .pin-dots { display: flex; gap: 20px; margin: 10px 0; }
+  .dot { width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.25); border-radius: 50%; transition: all 0.15s ease; }
+  .dot.filled { background: #ffffff; border-color: #ffffff; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+  .pin-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; width: 100%; }
+  .pin-btn { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); color: #ffffff; font-size: 1.5rem; font-weight: 700; height: 65px; border-radius: 12px; display: flex; align-items: center; justify-content: center; transition: background 0.1s; }
+  .pin-btn:active { background: rgba(255, 255, 255, 0.15); }
+  #login-error { color: var(--bold-red); font-size: 0.8rem; font-weight: 700; opacity: 0; transition: opacity 0.2s; height: 15px; }
+
+  /* HEADER & NAVIGATION */
+  header { background: var(--header-bg); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); height: 65px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+  .header-title { font-weight: 900; font-size: 1.1rem; letter-spacing: 0.5px; }
+  .nav-bar { display: flex; background: var(--border); padding: 3px; border-radius: 9px; gap: 4px; }
+  .nav-item { padding: 6px 14px; font-size: 0.75rem; font-weight: 700; border-radius: 7px; color: var(--text-dim); text-decoration: none; transition: all 0.2s; }
+  .nav-item.active { background: #ffffff; color: var(--text-active); box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+
+  /* MAIN WORKSPACE WRAPPER */
+  main { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 100px; -webkit-overflow-scrolling: touch; }
+  .view-section { display: none; animation: fadeIn 0.2s ease-in-out forwards; }
+  .view-section.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* PROJECTS DESIGNS */
+  .project-card { background: #ffffff; border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+  .proj-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .proj-badge { width: 14px; height: 14px; border-radius: 4px; }
+  .proj-title { font-size: 1.15rem; font-weight: 900; letter-spacing: -0.3px; }
+  .proj-desc { font-size: 0.8rem; color: var(--text-dim); line-height: 1.4; margin-bottom: 20px; font-weight: 400; }
+  
+  /* STEP ROW STRIP */
+  .steps-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 20px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .steps-strip::-webkit-scrollbar { display: none; }
+  .step-tab { background: #f5f5f5; color: var(--text-dim); padding: 8px 14px; border-radius: 9px; font-size: 0.75rem; font-weight: 700; white-space: nowrap; transition: all 0.2s; border: 1px solid transparent; }
+  .step-tab.active { background: var(--text-active); color: #ffffff; }
+
+  /* ACTION ROW SUB-LISTS */
+  .sub-section-title { font-size: 0.7rem; font-weight: 900; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; margin: 18px 0 8px 0; display: flex; justify-content: space-between; align-items: center; }
+  .add-inline-btn { color: var(--orange-med); font-weight: 700; font-size: 0.7rem; cursor: pointer; padding: 2px 6px; }
+  .grid-links { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .link-node { background: #f9f9f9; border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 0.78rem; font-weight: 700; text-decoration: none; color: var(--text-active); display: flex; align-items: center; justify-content: space-between; }
+  .link-node:active { background: #f0f0f0; }
+
+  /* KANBAN TASKS ENGINE */
+  .kanban-list { display: flex; flex-direction: column; gap: 8px; }
+  .task-row { background: #f9f9f9; border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; font-size: 0.82rem; font-weight: 500; }
+  .task-check { width: 18px; height: 18px; border: 2px solid var(--text-dim); border-radius: 5px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.1s; }
+  .task-row.done { color: var(--text-dim); text-decoration: line-through; background: #fafafa; border-color: #f0f0f0; }
+  .task-row.done .task-check { background: var(--accent-green); border-color: var(--accent-green); }
+  .task-row.done .task-check::after { content: "✓"; color: #ffffff; font-size: 0.65rem; font-weight: 900; }
+
+  /* CARES / DAILY TRACKER */
+  .care-group { background: #ffffff; border: 1px solid var(--border); border-radius: 16px; padding: 18px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.01); }
+  .care-group-title { font-size: 0.85rem; font-weight: 900; letter-spacing: 0.5px; color: var(--text-active); margin-bottom: 14px; text-transform: lowercase; }
+  .care-item-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f9f9f9; }
+  .care-item-row:last-child { border-bottom: none; }
+  .care-label { font-size: 0.82rem; font-weight: 500; color: var(--text-active); }
+  .tracker-box-row { display: flex; gap: 6px; }
+  .track-box { width: 24px; height: 24px; border: 2px solid var(--border); background: #fdfdfdfd; border-radius: 6px; cursor: pointer; transition: all 0.15s ease; }
+  .track-box.filled { background: var(--orange-med); border-color: var(--orange-med); box-shadow: 0 2px 6px rgba(255,152,0,0.3); }
+
+  /* FLOATING SYSTEM ACTION BAR */
+  #fab { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; background: var(--donker); border-radius: 50%; display: none; align-items: center; justify-content: center; color: #ffffff; font-size: 1.8rem; font-weight: 400; box-shadow: 0 4px 16px rgba(10,17,40,0.3); z-index: 999; transition: transform 0.2s; }
+  #fab:active { transform: scale(0.92); }
+
+  /* UNIVERSAL DATA ENTRY DIALOG MODAL */
+  #uni-modal { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(10, 11, 24, 0.4); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 10000; padding: 20px; }
+  .modal-box { background: #ffffff; border-radius: 20px; width: 100%; max-width: 320px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+  @keyframes modalPop { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .modal-title { font-size: 0.8rem; font-weight: 900; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 16px; }
+  .modal-box input { width: 100%; height: 48px; background: #f5f5f5; border: 1px solid var(--border); border-radius: 10px; padding: 0 14px; font-size: 0.88rem; font-family: inherit; font-weight: 500; color: var(--text-active); margin-bottom: 12px; outline: none; }
+  .modal-box input:focus { border-color: var(--text-active); background: #ffffff; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+  .modal-btn { padding: 10px 16px; font-size: 0.78rem; font-weight: 700; border-radius: 8px; border: none; cursor: pointer; }
+  .modal-btn.cancel { background: #f0f0f0; color: var(--text-dim); }
+  .modal-btn.confirm { background: var(--donker); color: #ffffff; }
 </style>
 </head>
 <body>
 
-  <div id="app-core"></div>
+  <div id="login-screen">
+    <div class="pin-container">
+      <div class="logo-area">
+        <h1>PRATIGAHARA</h1>
+        <p>A W A N . D A I L Y</p>
+      </div>
+      <div class="pin-dots" id="pin-display">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+      <div id="login-error">PIN SALAH. SILAHKAN COBA LAGI</div>
+      <div class="pin-grid">
+        <div class="pin-btn" onclick="enterPin('1')">1</div>
+        <div class="pin-btn" onclick="enterPin('2')">2</div>
+        <div class="pin-btn" onclick="enterPin('3')">3</div>
+        <div class="pin-btn" onclick="enterPin('4')">4</div>
+        <div class="pin-btn" onclick="enterPin('5')">5</div>
+        <div class="pin-btn" onclick="enterPin('6')">6</div>
+        <div class="pin-btn" onclick="enterPin('7')">7</div>
+        <div class="pin-btn" onclick="enterPin('8')">8</div>
+        <div class="pin-btn" onclick="enterPin('9')">9</div>
+        <div class="pin-btn" style="background:transparent; border:none;" onclick="clearPin()">C</div>
+        <div class="pin-btn" onclick="enterPin('0')">0</div>
+        <div class="pin-btn" style="background:transparent; border:none; font-size:1rem;" onclick="document.getElementById('login-error').style.opacity='0'">←</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="app-core">
+    <header>
+      <div class="header-title">pratigahara.</div>
+      <div class="nav-bar">
+        <a href="#" class="nav-item active" id="nav-projects" onclick="switchTab('projects')">Workspace</a>
+        <a href="#" class="nav-item" id="nav-cares" onclick="switchTab('cares')">Cares</a>
+      </div>
+    </header>
+
+    <main>
+      <div id="view-projects" class="view-section active">
+        <div id="projects-injection-target"></div>
+      </div>
+
+      <div id="view-cares" class="view-section">
+        <div id="cares-injection-target"></div>
+      </div>
+    </main>
+  </div>
+
+  <div id="fab" onclick="handleFabAction()">+</div>
+
+  <div id="uni-modal">
+    <div class="modal-box">
+      <div class="modal-title" id="uni-title">INPUT DATA</div>
+      <input type="text" id="uni-input" placeholder="Ketik disini...">
+      <input type="text" id="uni-input-secondary" placeholder="Ketik data kedua..." style="display: none;">
+      <div class="modal-actions">
+        <button class="modal-btn cancel" onclick="closeUniModal()">Batal</button>
+        <button class="modal-btn confirm" id="uni-confirm-btn">Simpan</button>
+      </div>
+    </div>
+  </div>
 
   <script src="js/auth.js"></script>
   <script src="js/database.js"></script>
   <script>
-  // Handle Project dynamic additions
-  function triggerProjectAdd(type, projId) {
-    let proj = window.AppData.projects.find(p => p.id === projId);
-    if(!proj) return;
+    /* =========================================================================
+       SYSTEM INTEGRATION PLATFORM & ENGINE CONTROLLERS
+       ========================================================================= */
+    let projectDatabase = [];
+    let caresCustomData = [];
+    let activeAppTab = 'projects';
+    let activeModalCallback = null;
 
-    if(type === 'link') {
-      openUniModal("ADD QUICK LINK", "", (title, url) => {
-        if(title.trim() && url.trim()) {
-          proj.links.push({ id: 'l'+Date.now(), name: title.trim(), url: url.trim() });
-          window.saveSystem(); // Auto-save update trigger
-          renderProjectWorkspace();
-        }
-      }, false, "Link Title...");
-      document.getElementById('uni-input').placeholder = "URL (https://...)";
+    // 1. BOOTSTRAP INITIALIZATION ON LOGIN SUCCESS
+    function bootSystem() {
+      projectDatabase = window.AppData.projects || [];
+      caresCustomData = window.AppData.cares || [];
+      renderProjectWorkspace();
+      renderCaresDynamic();
     }
-    else if(type === 'kanban') {
-      openUniModal("NEW TASK", "", (val) => {
-        if(val.trim()) {
-          proj.kanbans.push({ id: 'k'+Date.now(), text: val.trim(), status: 'todo' });
-          window.saveSystem(); // Auto-save update trigger
-          renderProjectWorkspace();
-        }
-      }, true, "Task description...");
-    }
-    else if(type === 'shop') {
-      openUniModal("ADD SHOP LINK", "", (typeLabel, url) => {
-        if(typeLabel.trim() && url.trim()) {
-          proj.shops.push({ id: 's'+Date.now(), type: typeLabel.trim(), url: url.trim() });
-          window.saveSystem(); // Auto-save update trigger
-          renderProjectWorkspace();
-        }
-      }, false, "Type (e.g. Itch.io, GooglePlay)...");
-      document.getElementById('uni-input').placeholder = "URL (https://...)";
-    }
-  }
 
-  // Handle Cares Dynamic additions
-  function triggerCaresAdd(type) {
-    if(type === 'category') {
-      openUniModal("NEW CATEGORY", "", (val) => {
-        if(val.trim()) {
-          window.AppData.cares.push({ id: 'cg'+Date.now(), title: (val.startsWith('>')?val:'>'+val), items: [] });
-          window.saveSystem(); // Auto-save update trigger
-          renderCaresDynamic();
-        }
-      }, true, "Category Name (e.g. >learning)");
-    } else if (type === 'variable') {
-      openUniModal("NEW VARIABLE", "", (varName, countStr) => {
-        let catName = prompt("Add to which category? (e.g. >gaming)");
-        if(!catName) return; 
-        if(!catName.startsWith('>')) catName = '>' + catName;
+    // 2. RUNTIME LAYER SWITCHER VIEWPORT
+    function switchTab(targetTab) {
+      activeAppTab = targetTab;
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+      
+      document.getElementById(`nav-${targetTab}`).classList.add('active');
+      document.getElementById(`view-${targetTab}`).classList.add('active');
+    }
+
+    // 3. RENDER FUNCTION ENGINE FOR PROJECTS WORKSPACE
+    function renderProjectWorkspace() {
+      const container = document.getElementById('projects-injection-target');
+      if(!container) return;
+      container.innerHTML = "";
+
+      projectDatabase.forEach((proj) => {
+        let currentStepIndex = proj.activeStepIndex || 0;
+        let step = proj.stepsData[currentStepIndex] || { title: "No Step", tasks: [] };
+
+        // Render project container layout cards
+        let card = document.createElement('div');
+        card.className = 'project-card';
         
-        let cat = window.AppData.cares.find(c => c.title.toLowerCase() === catName.toLowerCase());
-        if(!cat) {
-          cat = { id: 'cg'+Date.now(), title: catName, items: [] };
-          window.AppData.cares.push(cat);
+        let headerRow = `<div class="proj-header">
+          <div class="proj-badge" style="background:${proj.color || '#ff9800'}"></div>
+          <div class="proj-title">${proj.title}</div>
+        </div>
+        <div class="proj-desc">${proj.desc || ''}</div>`;
+
+        // Render horizontal step strip choices
+        let stepsStripHtml = `<div class="steps-strip">`;
+        proj.stepsData.forEach((st, sIdx) => {
+          stepsStripHtml += `<div class="step-tab ${sIdx === currentStepIndex ? 'active' : ''}" onclick="selectProjectStep('${proj.id}', ${sIdx})">${st.title}</div>`;
+        });
+        stepsStripHtml += `</div>`;
+
+        // Render current selected step subtasks lists
+        let taskListHtml = `<div class="sub-section-title">TASKS (${step.title})</div><div class="kanban-list">`;
+        if(step.tasks && step.tasks.length > 0) {
+          step.tasks.forEach((tsk, tIdx) => {
+            taskListHtml += `
+              <div class="task-row ${tsk.done ? 'done' : ''}" onclick="toggleTaskState('${proj.id}', ${currentStepIndex}, ${tIdx})">
+                <div class="task-check"></div>
+                <div>${tsk.desc}</div>
+              </div>`;
+          });
+        } else {
+          taskListHtml += `<div style="font-size:0.75rem; color:var(--text-dim); font-style:italic; padding:4px 0;">Tidak ada tugas aktif di milestone ini.</div>`;
         }
-        let max = parseInt(countStr) || 1;
-        cat.items.push({ id: 'c'+Date.now(), label: varName.trim(), max: max });
-        window.saveSystem(); // Auto-save update trigger
-        renderCaresDynamic();
-      }, false, "Variable Name (e.g. tacticool)...");
-      document.getElementById('uni-input').placeholder = "Max Limit Count (e.g. 2)";
+        taskListHtml += `</div>`;
+
+        // Render Quick links dynamic grid sub-section
+        let linkListHtml = `<div class="sub-section-title">QUICK LINKS <span class="add-inline-btn" onclick="triggerProjectAdd('link', '${proj.id}')">+ ADD</span></div><div class="grid-links">`;
+        if(proj.links && proj.links.length > 0) {
+          proj.links.forEach((l) => {
+            linkListHtml += `<a href="${l.url}" target="_blank" class="link-node"><span>${l.name}</span><span style="color:var(--text-dim); font-size:0.6rem;">↗</span></a>`;
+          });
+        }
+        linkListHtml += `</div>`;
+
+        // Render marketplaces shop distribution channel lists
+        let shopListHtml = `<div class="sub-section-title">MARKETPLACES & SHANNELS <span class="add-inline-btn" onclick="triggerProjectAdd('shop', '${proj.id}')">+ ADD</span></div><div class="grid-links">`;
+        if(proj.shops && proj.shops.length > 0) {
+          proj.shops.forEach((s) => {
+            shopListHtml += `<a href="${s.url}" target="_blank" class="link-node" style="border-left: 3px solid var(--orange-med);"><span>${s.type}</span><span style="color:var(--orange-med); font-size:0.6rem;">live</span></a>`;
+          });
+        }
+        linkListHtml += `</div>`;
+
+        card.innerHTML = headerRow + stepsStripHtml + taskListHtml + linkListHtml + shopListHtml;
+        container.appendChild(card);
+      });
     }
-  }
+
+    // 4. RENDER FUNCTION ENGINE FOR CARES TRACKER
+    function renderCaresDynamic() {
+      const container = document.getElementById('cares-injection-target');
+      if(!container) return;
+      container.innerHTML = "";
+
+      caresCustomData.forEach((cat) => {
+        let card = document.createElement('div');
+        card.className = 'care-group';
+        
+        let htmlContent = `<div class="care-group-title">${cat.title}</div>`;
+        
+        if(cat.items && cat.items.length > 0) {
+          cat.items.forEach((item) => {
+            let currentCount = item.current || 0;
+            let boxesHtml = `<div class="tracker-box-row">`;
+            for(let i = 1; i <= item.max; i++) {
+              boxesHtml += `<div class="track-box ${i <= currentCount ? 'filled' : ''}" onclick="clickTrackerNode('${cat.id}', '${item.id}', ${i})"></div>`;
+            }
+            boxesHtml += `</div>`;
+
+            htmlContent += `
+              <div class="care-item-row">
+                <div class="care-label">${item.label}</div>
+                ${boxesHtml}
+              </div>`;
+          });
+        } else {
+          htmlContent += `<div style="font-size:0.75rem; color:var(--text-dim); font-style:italic;">Belum ada tracking item.</div>`;
+        }
+        
+        card.innerHTML = htmlContent;
+        container.appendChild(card);
+      });
+    }
+
+    // 5. INTERACTION MUTATORS FOR ACTIONS WITH PERSISTENCE CODES
+    function selectProjectStep(projId, stepIdx) {
+      let proj = projectDatabase.find(p => p.id === projId);
+      if(proj) {
+        proj.activeStepIndex = stepIdx;
+        window.saveSystem(); // Instant Save
+        renderProjectWorkspace();
+      }
+    }
+
+    function toggleTaskState(projId, stepIdx, taskIdx) {
+      let proj = projectDatabase.find(p => p.id === projId);
+      if(proj && proj.stepsData[stepIdx] && proj.stepsData[stepIdx].tasks[taskIdx]) {
+        let task = proj.stepsData[stepIdx].tasks[taskIdx];
+        task.done = !task.done;
+        window.saveSystem(); // Instant Save
+        renderProjectWorkspace();
+      }
+    }
+
+    function clickTrackerNode(catId, itemId, indexClicked) {
+      let cat = caresCustomData.find(c => c.id === catId);
+      if(!cat) return;
+      let item = cat.items.find(i => i.id === itemId);
+      if(!item) return;
+
+      let current = item.current || 0;
+      if(current === indexClicked) {
+        item.current = indexClicked - 1;
+      } else {
+        item.current = indexClicked;
+      }
+      window.saveSystem(); // Instant Save
+      renderCaresDynamic();
+    }
+
+    // 6. MODAL INTERACTION DIALOG SYSTEM HANDLERS
+    function openUniModal(title, defaultVal, callback, singleInput = true, placeholder1 = "Ketik...", placeholder2 = "Ketik...") {
+      document.getElementById('uni-title').innerText = title;
+      
+      const in1 = document.getElementById('uni-input');
+      const in2 = document.getElementById('uni-input-secondary');
+      
+      in1.value = defaultVal;
+      in1.placeholder = placeholder1;
+      
+      if(singleInput) {
+        in2.style.display = 'none';
+      } else {
+        in2.style.display = 'block';
+        in2.value = "";
+        in2.placeholder = placeholder2;
+      }
+      
+      activeModalCallback = callback;
+      document.getElementById('uni-modal').style.display = 'flex';
+    }
+
+    function closeUniModal() {
+      document.getElementById('uni-modal').style.display = 'none';
+      activeModalCallback = null;
+    }
+
+    document.getElementById('uni-confirm-btn').onclick = function() {
+      if(activeModalCallback) {
+        const val1 = document.getElementById('uni-input').value;
+        const val2 = document.getElementById('uni-input-secondary').value;
+        activeModalCallback(val1, val2);
+      }
+      closeUniModal();
+    };
+
+    // 7. INLINE ADD SUB-ELEMENTS MODAL CALLS
+    function triggerProjectAdd(type, projId) {
+      let proj = projectDatabase.find(p => p.id === projId);
+      if(!proj) return;
+
+      if(type === 'link') {
+        openUniModal("ADD QUICK LINK", "", (title, url) => {
+          if(title.trim() && url.trim()) {
+            proj.links = proj.links || [];
+            proj.links.push({ id: 'l'+Date.now(), name: title.trim(), url: url.trim() });
+            window.saveSystem(); // Save trigger fixed
+            renderProjectWorkspace();
+          }
+        }, false, "Link Title...", "URL (https://...)");
+      }
+      else if(type === 'shop') {
+        openUniModal("ADD SHOP LINK", "", (typeLabel, url) => {
+          if(typeLabel.trim() && url.trim()) {
+            proj.shops = proj.shops || [];
+            proj.shops.push({ id: 's'+Date.now(), type: typeLabel.trim(), url: url.trim() });
+            window.saveSystem(); // Save trigger fixed
+            renderProjectWorkspace();
+          }
+        }, false, "Type (e.g. Itch.io, PlayStore)...", "URL (https://...)");
+      }
+    }
+
+    function triggerCaresAdd(type) {
+      if(type === 'category') {
+        openUniModal("NEW CATEGORY", "", (val) => {
+          if(val.trim()) {
+            caresCustomData.push({ id: 'cg'+Date.now(), title: (val.startsWith('>') ? val : '>'+val), items: [] });
+            window.saveSystem(); // Save trigger fixed
+            renderCaresDynamic();
+          }
+        }, true, "Category Name (e.g. >learning)");
+      } else if (type === 'variable') {
+        openUniModal("NEW VARIABLE", "", (varName, countStr) => {
+          let catName = prompt("Add to which category? (e.g. >gaming)");
+          if(!catName) return;
+          if(!catName.startsWith('>')) catName = '>' + catName;
+          
+          let cat = caresCustomData.find(c => c.title.toLowerCase() === catName.toLowerCase());
+          if(!cat) {
+            cat = { id: 'cg'+Date.now(), title: catName, items: [] };
+            caresCustomData.push(cat);
+          }
+          let max = parseInt(countStr) || 1;
+          cat.items.push({ id: 'c'+Date.now(), label: varName.trim(), max: max, current: 0 });
+          window.saveSystem(); // Save trigger fixed
+          renderCaresDynamic();
+        }, false, "Variable Name (e.g. tacticool)...", "Max Limit Count (e.g. 2)");
+      }
+    }
+
+    // 8. GLOBAL FAB CONTROL ROUTER
+    function handleFabAction() {
+      if(activeAppTab === 'projects') {
+        openUniModal("NEW PROJECT WORKING CORE", "", (title, desc) => {
+          if(title.trim()) {
+            projectDatabase.push({
+              id: 'p'+Date.now(),
+              title: title.trim(),
+              desc: desc.trim(),
+              color: '#ff9800',
+              activeStepIndex: 0,
+              stepsData: [{ title: "Milestone 1", tasks: [] }],
+              links: [], kanbans: [], shops: []
+            });
+            window.saveSystem(); // Save trigger fixed
+            renderProjectWorkspace();
+          }
+        }, false, "Project Title...", "Short descriptions...");
+      } else {
+        triggerCaresAdd('category');
+      }
+    }
   </script>
 </body>
 </html>

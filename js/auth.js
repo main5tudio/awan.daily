@@ -1,7 +1,8 @@
 let currentInputPin = "";
 
 function enterPin(digit) { 
-  if(currentInputPin.length < 4) { \n    currentInputPin += digit; 
+  if(currentInputPin.length < 4) { 
+    currentInputPin += digit; 
     const dots = document.getElementById('pin-display').children; 
     for(let i=0; i<4; i++) dots[i].classList.toggle('filled', i < currentInputPin.length); 
     
@@ -23,4 +24,6 @@ function enterPin(digit) {
 
 function clearPin() { 
   currentInputPin = ""; 
-  const dots = document.getElementById('pin-display').children; \n  for(let i=0; i<4; i++) dots[i].classList.remove('filled'); \n}
+  const dots = document.getElementById('pin-display').children; 
+  for(let i=0; i<4; i++) dots[i].classList.remove('filled'); 
+}
