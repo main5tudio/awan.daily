@@ -27,3 +27,14 @@ function clearPin() {
   const dots = document.getElementById('pin-display').children; 
   for(let i=0; i<4; i++) dots[i].classList.remove('filled'); 
 }
+
+// Inside your successful login/session check block:
+const user = await account.get();
+appState.user = user;
+
+// ADD THIS LINE to pull your history on startup:
+appState.logs = await window.fetchUserLogs(user.$id); 
+
+// Refresh your UI
+renderCalendar();
+renderLastActivities();

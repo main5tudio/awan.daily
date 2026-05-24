@@ -836,6 +836,41 @@
       document.getElementById('uni-input').placeholder = "Number of items daily (e.g. 2)";
     }
   }
+
+  async function handleFormSubmit(event) {
+    event.preventDefault(); // Stops page from reloading
+
+    const type = document.getElementById('entry-type-select').value; // 'Input' or 'Tap Gaming'
+    const content = document.getElementById('entry-content-input').value.trim();
+
+    if (!content) return;
+
+    const newLog = {
+        userId: appState.user.$id,
+        type: type,
+        content: content,
+        timestamp: new Date().toISOString() // Ties it to today
+    };
+
+    try {
+        // 1. Save to Appwrite Cloud
+        const savedDoc = await window.saveLog(newLog);
+
+        // 2. Push to local UI state
+        appState.logs.push(savedDoc);
+
+        // 3. Redraw everything
+        renderCalendar();
+        renderLastActivities();
+        closeModal();
+    } catch (error) {
+        alert("Failed to save progress to cloud.");
+    }
+}
+
+// Attach it to your form element
+document.getElementById('your-modal-form-id').addEventListener('submit', handleFormSubmit);
+
 </script>
 </body>
 </html>

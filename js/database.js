@@ -32,3 +32,6 @@ window.saveSystem = () => {
   localStorage.setItem('pratigahara_db', JSON.stringify(window.AppData));
   console.log("System Sync: Done.");
 };
+window.saveLog = saveLog;
+window.fetchUserLogs = fetchUserLogs;
+
