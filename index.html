@@ -1,290 +1,103 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PRATIGAHARA</title>
-    <script src="https://cdn.jsdelivr.net/npm/appwrite@14.0.0"></script>
-    <style>
-        :root {
-            --bg-dark: #121212;
-            --surface: #1e1e1e;
-            --accent: #ff9800;
-            --text-main: #ffffff;
-            --text-muted: #aaaaaa;
-        }
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-        header {
-            background-color: var(--surface);
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #333;
-        }
-        .app-title { font-weight: bold; letter-spacing: 1px; }
-        .time-display { color: var(--accent); font-weight: bold; }
-        .main-content { flex: 1; overflow-y: auto; padding: 15px; padding-bottom: 80px; }
-        .month-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; text-align: center; }
-        .day-name { color: var(--text-muted); font-size: 12px; padding-bottom: 5px; }
-        .calendar-day { padding: 10px 0; border-radius: 4px; position: relative; font-weight: 500; cursor: pointer; }
-        .calendar-day.empty { visibility: hidden; }
-        .calendar-day.today { background-color: var(--accent); color: #000; }
-        .calendar-day.selected { border: 2px solid var(--accent); }
-        .dot { width: 5px; height: 5px; background-color: #ff5252; border-radius: 50%; position: absolute; bottom: 3px; left: 50%; transform: translateX(-50%); }
-        .activities-container { margin-top: 25px; }
-        .activities-title { font-size: 12px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; letter-spacing: 1px; }
-        .activity-card { background-color: var(--surface); padding: 15px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
-        .activity-info { display: flex; flex-direction: column; gap: 4px; }
-        .activity-type { font-weight: bold; }
-        .activity-content { color: var(--text-muted); font-size: 14px; }
-        .activity-time { font-size: 12px; color: var(--text-muted); }
-        .fab { position: fixed; bottom: 80px; right: 20px; width: 56px; height: 56px; background-color: var(--surface); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; color: var(--text-main); box-shadow: 0 4px 10px rgba(0,0,0,0.5); cursor: pointer; border: 1px solid #333; z-index: 99; }
-        nav { position: fixed; bottom: 0; left: 0; right: 0; height: 60px; background-color: var(--surface); display: flex; justify-content: space-around; align-items: center; border-top: 1px solid #333; z-index: 100; }
-        .nav-item { color: var(--text-muted); font-size: 12px; text-decoration: none; cursor: pointer; padding: 10px; }
-        .nav-item.active { color: var(--text-main); font-weight: bold; }
-        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background-color: var(--surface); padding: 20px; border-radius: 12px; width: 85%; max-width: 400px; display: flex; flex-direction: column; gap: 15px; }
-        .modal-title { font-size: 18px; font-weight: bold; }
-        .form-group { display: flex; flex-direction: column; gap: 5px; }
-        select, input { padding: 12px; background-color: var(--bg-dark); border: 1px solid #333; color: white; border-radius: 6px; font-size: 16px; }
-        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
-        .btn { padding: 10px 20px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; }
-        .btn-cancel { background-color: transparent; color: var(--text-muted); }
-        .btn-save { background-color: var(--accent); color: black; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Pratigahara Core</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  /* =========================================
+     A. GLOBAL VARIABLES & RESET
+     ========================================= */
+  :root {
+    --header-bg: rgba(18, 18, 18, 0.85);
+    --bg: #fcfcfc;
+    --text-active: rgba(18, 18, 18, 0.85);
+    --text-dim: rgba(0, 0, 0, 0.45);
+    --nav-fade: rgba(0, 0, 0, 0.20);
+    --nav-active: rgba(18, 18, 18, 0.85);
+    --orange-med: #ff9800; 
+    --bold-red: #ff0000;
+    --accent-green: #2d9e6b;
+    --donker: #0a1128;
+    --border: #eeeeee;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { font-family: 'DM Sans', sans-serif; background-color: var(--bg); color: var(--text-active); overflow: hidden; height: 100vh; }
+</style>
 </head>
 <body>
 
-    <header>
-        <div class="app-title">PRATIGAHARA</div>
-        <div class="time-display" id="header-time">20:51</div>
-    </header>
+  <div id="app-core"></div>
 
-    <div class="main-content">
-        <div class="month-header">
-            <h3 id="calendar-month-year">MEI 2026</h3>
-        </div>
+  <script src="js/auth.js"></script>
+  <script src="js/database.js"></script>
+  <script>
+  // Handle Project dynamic additions
+  function triggerProjectAdd(type, projId) {
+    let proj = window.AppData.projects.find(p => p.id === projId);
+    if(!proj) return;
 
-        <div class="calendar-grid" id="calendar-container"></div>
-
-        <div class="activities-container">
-            <div class="activities-title">Last Activities</div>
-            <div id="activities-list"></div>
-        </div>
-    </div>
-
-    <div class="fab" id="open-modal-btn">+</div>
-
-    <nav>
-        <div class="nav-item active" onclick="switchTab('home')">home</div>
-        <div class="nav-item" onclick="switchTab('project')">project</div>
-        <div class="nav-item" onclick="switchTab('work')">work</div>
-        <div class="nav-item" onclick="switchTab('daily')">daily</div>
-        <div class="nav-item" onclick="switchTab('cares')">cares</div>
-    </nav>
-
-    <div class="modal" id="entry-modal">
-        <form class="modal-content" id="modal-form">
-            <div class="modal-title">Add Log Entry</div>
-            <div class="form-group">
-                <label>Category</label>
-                <select id="entry-type-select">
-                    <option value="Input">Input</option>
-                    <option value="Tap Gaming">Tap Gaming</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Content Details</label>
-                <input type="text" id="entry-content-input" placeholder="e.g., Beras, Tacticool" required>
-            </div>
-            <div class="modal-buttons">
-                <button type="button" class="btn btn-cancel" id="close-modal-btn">Cancel</button>
-                <button type="submit" class="btn btn-save">Save Entry</button>
-            </div>
-        </form>
-    </div>
-
-    <script>
-        window.appState = {
-            user: null,
-            logs: [],
-            currentDate: new Date(),
-            selectedDate: new Date()
-        };
-
-        const monthNames = ["JANUARI", "FEBRUARI", "MARET", "APRIL", "MEI", "JUNI", "JULI", "AGUSTUS", "SEPTEMBER", "OKTOBER", "NOVEMBER", "DESEMBER"];
-        const dayLetters = ["M", "S", "S", "R", "K", "J", "S"];
-
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('header-time').innerText = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
+    if(type === 'link') {
+      openUniModal("ADD QUICK LINK", "", (title, url) => {
+        if(title.trim() && url.trim()) {
+          proj.links.push({ id: 'l'+Date.now(), name: title.trim(), url: url.trim() });
+          window.saveSystem(); // Auto-save update trigger
+          renderProjectWorkspace();
         }
-        setInterval(updateClock, 1000);
-        updateClock();
-
-        function renderCalendar() {
-            const container = document.getElementById('calendar-container');
-            container.innerHTML = '';
-            
-            const year = window.appState.currentDate.getFullYear();
-            const month = window.appState.currentDate.getMonth();
-            
-            document.getElementById('calendar-month-year').innerText = `${monthNames[month]} ${year}`;
-            
-            dayLetters.forEach(d => {
-                const el = document.createElement('div');
-                el.className = 'day-name';
-                el.innerText = d;
-                container.appendChild(el);
-            });
-
-            const firstDay = new Date(year, month, 1).getDay();
-            const totalDays = new Date(year, month + 1, 0).getDate();
-
-            for (let i = 0; i < firstDay; i++) {
-                const empty = document.createElement('div');
-                empty.className = 'calendar-day empty';
-                container.appendChild(empty);
-            }
-
-            for (let day = 1; day <= totalDays; day++) {
-                const dayEl = document.createElement('div');
-                dayEl.className = 'calendar-day';
-                dayEl.innerText = day;
-                
-                const thisDate = new Date(year, month, day);
-                const today = new Date();
-                
-                if (thisDate.toDateString() === today.toDateString()) dayEl.classList.add('today');
-                if (thisDate.toDateString() === window.appState.selectedDate.toDateString()) dayEl.classList.add('selected');
-
-                // Add progress markers if history matches this date entry
-                const dateStr = thisDate.toDateString();
-                const hasLogs = window.appState.logs.some(l => new Date(l.timestamp).toDateString() === dateStr);
-                if (hasLogs) {
-                    const dot = document.createElement('div');
-                    dot.className = 'dot';
-                    dayEl.appendChild(dot);
-                }
-
-                dayEl.addEventListener('click', () => {
-                    window.appState.selectedDate = thisDate;
-                    renderCalendar();
-                    renderLastActivities();
-                });
-
-                container.appendChild(dayEl);
-            }
+      }, false, "Link Title...");
+      document.getElementById('uni-input').placeholder = "URL (https://...)";
+    }
+    else if(type === 'kanban') {
+      openUniModal("NEW TASK", "", (val) => {
+        if(val.trim()) {
+          proj.kanbans.push({ id: 'k'+Date.now(), text: val.trim(), status: 'todo' });
+          window.saveSystem(); // Auto-save update trigger
+          renderProjectWorkspace();
         }
-
-        function renderLastActivities() {
-            const list = document.getElementById('activities-list');
-            list.innerHTML = '';
-            
-            const selectedStr = window.appState.selectedDate.toDateString();
-            const filtered = window.appState.logs.filter(l => new Date(l.timestamp).toDateString() === selectedStr);
-
-            if(filtered.length === 0) {
-                list.innerHTML = `<div style="color:var(--text-muted); font-size:14px; padding:10px;">No entries for this date.</div>`;
-                return;
-            }
-
-            filtered.reverse().forEach(log => {
-                const card = document.createElement('div');
-                card.className = 'activity-card';
-                
-                // Relative time calculations
-                const diffMs = new Date() - new Date(log.timestamp);
-                const diffMins = Math.max(0, Math.floor(diffMs / 60000));
-                const timeText = diffMins < 60 ? `${diffMins}m ago` : new Date(log.timestamp).toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
-
-                card.innerHTML = `
-                    <div class="activity-info">
-                        <div class="activity-type">${log.type} <span style="color:var(--accent); font-weight:normal;">${log.content}</span></div>
-                    </div>
-                    <div class="activity-time">${timeText}</div>
-                `;
-                list.appendChild(card);
-            });
+      }, true, "Task description...");
+    }
+    else if(type === 'shop') {
+      openUniModal("ADD SHOP LINK", "", (typeLabel, url) => {
+        if(typeLabel.trim() && url.trim()) {
+          proj.shops.push({ id: 's'+Date.now(), type: typeLabel.trim(), url: url.trim() });
+          window.saveSystem(); // Auto-save update trigger
+          renderProjectWorkspace();
         }
+      }, false, "Type (e.g. Itch.io, GooglePlay)...");
+      document.getElementById('uni-input').placeholder = "URL (https://...)";
+    }
+  }
 
-        // Modal Action Scripts
-        const modal = document.getElementById('entry-modal');
-        document.getElementById('open-modal-btn').addEventListener('click', () => modal.style.display = 'flex');
-        document.getElementById('close-modal-btn').addEventListener('click', () => {
-            modal.style.display = 'none';
-            document.getElementById('entry-content-input').value = '';
-        });
-
-        // Pipeline connection to Cloud Engine
-        document.getElementById('modal-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            if (!window.appState.user) {
-                alert("Please authenticate via session configuration first, commrade!");
-                return;
-            }
-
-            const type = document.getElementById('entry-type-select').value;
-            const content = document.getElementById('entry-content-input').value.trim();
-            
-            const payload = {
-                userId: window.appState.user.$id,
-                type: type,
-                content: content,
-                timestamp: window.appState.selectedDate.toISOString()
-            };
-
-            try {
-                // Try executing the Appwrite sync call
-                let savedEntry = payload;
-                if (typeof window.saveLog === 'function') {
-                    savedEntry = await window.saveLog(payload);
-                }
-                
-                window.appState.logs.push(savedEntry);
-            } catch (err) {
-                console.warn("Appwrite backend dropped data syncing, triggering device fallback execution:", err);
-                window.appState.logs.push(payload);
-            }
-
-            renderCalendar();
-            renderLastActivities();
-            
-            // Auto close form view container
-            modal.style.display = 'none';
-            document.getElementById('entry-content-input').value = '';
-        });
-
-        function switchTab(id) {
-            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-            event.target.classList.add('active');
-            console.log("Switched to interface context view mode:", id);
+  // Handle Cares Dynamic additions
+  function triggerCaresAdd(type) {
+    if(type === 'category') {
+      openUniModal("NEW CATEGORY", "", (val) => {
+        if(val.trim()) {
+          window.AppData.cares.push({ id: 'cg'+Date.now(), title: (val.startsWith('>')?val:'>'+val), items: [] });
+          window.saveSystem(); // Auto-save update trigger
+          renderCaresDynamic();
         }
-    </script>
-
-    <script src="js/auth.js"></script>
-    <script src="js/database.js"></script>
-    <script>
-        // Init runtime checks after files compile pipelines complete
-        window.addEventListener('DOMContentLoaded', () => {
-            if (typeof window.checkSession === 'function') {
-                window.checkSession();
-            } else {
-                renderCalendar();
-                renderLastActivities();
-            }
-        });
-    </script>
+      }, true, "Category Name (e.g. >learning)");
+    } else if (type === 'variable') {
+      openUniModal("NEW VARIABLE", "", (varName, countStr) => {
+        let catName = prompt("Add to which category? (e.g. >gaming)");
+        if(!catName) return; 
+        if(!catName.startsWith('>')) catName = '>' + catName;
+        
+        let cat = window.AppData.cares.find(c => c.title.toLowerCase() === catName.toLowerCase());
+        if(!cat) {
+          cat = { id: 'cg'+Date.now(), title: catName, items: [] };
+          window.AppData.cares.push(cat);
+        }
+        let max = parseInt(countStr) || 1;
+        cat.items.push({ id: 'c'+Date.now(), label: varName.trim(), max: max });
+        window.saveSystem(); // Auto-save update trigger
+        renderCaresDynamic();
+      }, false, "Variable Name (e.g. tacticool)...");
+      document.getElementById('uni-input').placeholder = "Max Limit Count (e.g. 2)";
+    }
+  }
+  </script>
 </body>
 </html>
